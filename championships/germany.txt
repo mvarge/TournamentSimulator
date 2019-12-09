@@ -1,0 +1,18 @@
+Dortmun,19
+Hertha ,14
+1860 Mu,15
+Bayern ,19
+Hannove,11
+Hoffenh,10
+Frankfu,12
+Wolfsbu,10
+Koln,9
+Stuttga,10
+Hamburg,10
+Freibur,8
+Dusseld,7
+Schalke,7
+Augsbur,7
+Nurnber,7
+Dynamo ,6
+Mainz,7

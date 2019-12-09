@@ -1,0 +1,18 @@
+Dynamo ,5
+Mainz,8
+Arminia,5
+Aue   ,4
+Fortuna,5
+St Paul,4
+Braunsc,4
+Nurnber,9
+Greuthe,6
+Kaisers,9
+Bochum,6
+Holstei,4
+Osnabru,4
+Karlsru,5
+Paderbo,3
+Darmsta,3
+Heidenh,3
+Jahn Re,3

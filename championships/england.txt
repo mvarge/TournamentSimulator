@@ -1,0 +1,20 @@
+Southam,13
+Chelsea,18
+Bolton,16
+Arsenal,16
+Wolverh,11
+Liverpo,19
+Leicest,12
+Aston V,10
+Man Cit,18
+QPR   ,9
+Man Utd,12
+Tottenh,11
+Sunderl,13
+West Br,8
+Burnley,8
+Watford,8
+Everton,7
+Reading,7
+Sheffie,7
+Notting,7

@@ -1,0 +1,20 @@
+West Ha,10
+Cardiff,9
+Leeds,10
+Crystal,10
+Sheffie,8
+Reading,8
+Norwich,10
+Newcast,10
+Derby C,7
+Notting,7
+Middles,6
+Swansea,6
+Stoke C,8
+Hull Ci,5
+Birming,4
+Millwal,4
+Wigan,4
+Preston,3
+Charlto,3
+Brighto,3

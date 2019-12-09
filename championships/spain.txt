@@ -1,0 +1,20 @@
+Barcelo,19
+Villarr,15
+Zaragoz,14
+Cadiz,12
+Athleti,15
+Real Ma,19
+La Coru,12
+Huesca,10
+Levante,10
+Vallado,9
+Numanci,9
+Betis,9
+Valenci,10
+Rayo Va,8
+Atletic,11
+Espanyo,7
+Osasuna,7
+Granada,7
+Malaga,7
+Real So,7

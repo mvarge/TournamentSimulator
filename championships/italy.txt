@@ -1,0 +1,20 @@
+Sassuol,15
+Fiorent,15
+Napoli,16
+Juventu,18
+Torino,13
+Roma,13
+Catania,12
+Palermo,11
+Bologna,10
+Lazio,10
+Sampdor,10
+Milan,11
+Genoa,8
+Hellas ,8
+Cagliar,7
+Chievo,7
+Interna,9
+Atalant,8
+Udinese,7
+Parma,7

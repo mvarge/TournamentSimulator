@@ -1,0 +1,20 @@
+Atalant,10
+Parma,8
+Udinese,8
+Venezia,7
+Como,7
+Siena,7
+Juve St,5
+Lecce,5
+Brescia,5
+Reggian,5
+Carpi,4
+Ascoli,4
+Pescara,4
+Livorno,3
+Frosino,3
+Spezia,3
+SPAL,3
+Crotone,3
+Perugia,3
+Cittade,3

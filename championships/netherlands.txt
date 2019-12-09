@@ -1,0 +1,18 @@
+PSV   ,13
+Sparta,10
+NAC Bre,10
+Ajax,12
+AZ Alkm,10
+Feyenoo,9
+Vitesse,7
+Den Haa,7
+Twente,9
+Heerenv,6
+NEC Jim,5
+Emmen,6
+Utrecht,6
+Willem ,5
+Fortuna,5
+Zwolle,5
+Heracle,5
+VVV Ven,5

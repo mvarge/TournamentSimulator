@@ -1,0 +1,20 @@
+Mallorc,9
+Sportin,9
+Real Mu,9
+Celta V,10
+Malaga,9
+Racing ,8
+Cadiz,7
+Real So,10
+Tenerif,6
+Oviedo,7
+Elche,5
+Albacet,5
+Almeria,4
+Las Pal,5
+Hercule,5
+Gimnast,5
+Girona,3
+Leganes,3
+Alaves,3
+Ponteve,3
