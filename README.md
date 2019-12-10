@@ -34,7 +34,51 @@ on Wikipedia, where you can find a image description:
 
 ## How to use
 
-ATM please refer to _Main class_
+The _Main_ class currently holds two of the same examples as described below.
+
+For creating a whole new Tournament for `england.txt` and playing it:
+
+```$xslt
+        String championshipCountry = "england.txt";
+        Championship c = new Championship(basePath + "/championships/" + championshipCountry, 2, true);
+        c.generateMatches();
+        c.playMatches(true);
+```
+
+In this case you will simulate round after round and your end result should be something similar as:
+
+```
+Team	Pts	P	W	D	L	GF	GA	GD	M	R	D	FORM
+Arsenal	80	38	24	8	6	80	37	43	16	20	4	[W, W, W, L, W, D, D, W, W, D, L, W, W, L, W, W, W, L, D, W, W, W, L, L, W, W, D, W, D, W, W, W, W, D, W, W, D, W]
+Liverpo	79	38	25	4	9	77	27	50	19	17	-2	[L, W, W, L, W, W, L, W, W, W, W, W, W, L, W, L, W, W, L, W, D, W, D, D, W, W, W, W, L, L, W, W, W, W, L, W, D, W]
+Man Cit	76	38	22	10	6	70	35	35	18	20	2	[W, W, D, W, L, D, W, W, D, W, W, L, W, L, L, W, W, L, W, W, W, W, D, W, D, W, W, W, W, D, D, W, D, L, W, D, D, W]
+Bolton	75	38	22	9	7	72	34	38	16	20	4	[L, D, L, W, D, D, W, L, L, W, D, W, W, W, W, D, W, W, W, W, W, W, L, W, W, L, D, L, W, W, D, W, D, W, W, W, D, W]
+Chelsea	75	38	21	12	5	80	31	49	18	17	-1	[W, D, W, W, W, D, D, W, W, W, W, L, W, D, D, W, L, W, D, W, L, W, W, W, D, D, W, W, W, D, W, D, W, D, W, L, D, L]
+Southam	70	38	21	7	10	61	35	26	13	15	2	[W, W, W, W, W, W, W, D, L, W, W, W, W, L, L, D, L, L, D, W, W, W, W, W, W, W, L, W, D, L, D, D, L, L, W, L, D, W]
+Leicest	61	38	17	10	11	58	40	18	12	13	1	[D, W, W, D, L, D, D, L, L, W, D, L, L, W, W, D, W, W, D, W, W, W, L, D, L, D, W, D, W, L, W, L, W, W, L, W, L, W]
+Man Utd	57	38	16	9	13	62	57	5	12	13	1	[L, W, L, W, L, D, W, D, W, L, L, W, W, L, W, L, D, W, D, W, W, L, W, L, D, L, W, L, D, D, L, L, D, W, D, W, W, W]
+Reading	57	38	15	12	11	52	36	16	7	13	6	[W, D, L, L, W, W, D, W, L, D, L, D, D, L, D, W, L, L, W, L, W, L, W, W, L, W, W, L, D, D, W, D, W, W, D, D, W, D]
+Sunderl	54	38	15	9	14	61	48	13	13	15	2	[W, L, L, L, W, W, L, D, L, L, D, D, L, D, D, D, W, L, W, L, D, L, L, D, W, W, W, W, L, W, W, L, W, L, D, W, W, W]
+Watford	49	38	13	10	15	48	52	-4	8	9	1	[L, D, D, W, L, W, W, W, L, L, W, W, D, D, D, D, D, W, D, W, L, W, L, L, W, W, L, L, W, L, L, W, L, L, D, L, D, L]
+Wolverh	48	38	13	9	16	33	47	-14	11	11	0	[W, D, W, W, D, L, D, L, W, W, W, D, L, W, L, D, L, L, L, L, W, D, D, W, L, L, L, L, W, W, L, W, D, L, L, L, W, D]
+Aston V	46	38	12	10	16	47	44	3	10	10	0	[L, L, D, D, D, D, W, L, W, W, D, D, L, W, L, L, W, D, W, W, L, L, W, L, L, L, L, W, W, W, W, D, L, D, L, D, L, L]
+Everton	44	38	12	8	18	33	39	-6	7	9	2	[L, D, W, L, L, L, L, L, W, L, D, W, D, D, L, W, D, D, W, L, W, W, L, L, L, W, L, D, L, L, W, D, W, L, W, L, W, L]
+QPR   	42	38	11	9	18	34	54	-20	9	7	-2	[W, L, L, L, D, W, D, L, L, L, L, D, L, W, D, W, D, D, L, L, L, L, D, L, W, L, W, D, W, W, L, L, L, D, W, W, W, L]
+Burnley	39	38	10	9	19	39	72	-33	8	7	-1	[W, L, L, W, W, L, W, D, D, L, L, L, W, W, D, W, L, D, L, L, L, L, D, W, L, L, L, L, L, L, D, D, L, W, D, D, L, W]
+Tottenh	31	38	8	7	23	31	76	-45	11	5	-6	[L, L, L, L, L, L, L, L, W, W, D, L, L, D, D, L, W, W, D, L, L, D, W, W, W, L, D, L, L, L, L, L, L, W, L, D, L, L]
+West Br	30	38	7	9	22	24	67	-43	8	5	-3	[D, D, W, D, L, L, L, W, W, L, L, L, L, D, W, L, L, L, L, L, L, L, W, L, L, L, D, D, L, W, L, D, D, W, D, L, L, L]
+Sheffie	24	38	4	12	22	32	79	-47	7	4	-3	[L, L, L, L, L, D, L, W, L, L, W, D, D, D, D, L, L, L, D, L, L, L, D, D, D, L, L, W, L, W, L, L, D, L, L, D, D, L]
+Notting	14	38	3	5	30	13	97	-84	7	3	-4	[L, D, D, D, W, L, L, L, L, L, L, L, L, D, L, L, L, W, L, L, L, L, L, L, L, W, L, L, L, L, L, D, L, L, L, L, L, L]
+```
+
+For playing a single game you can simply do as like:
+
+```
+        Team homeTeam = new Team("Team 1 name", 19);
+        Team awayTeam = new Team("Team 2 name", 14);
+        Match m = new Match(homeTeam, awayTeam);
+        m.play(false);
+```
 
 ## More info
 
