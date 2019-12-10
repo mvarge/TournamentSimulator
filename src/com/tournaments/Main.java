@@ -10,7 +10,7 @@ public class Main {
 
         String championshipCountry = "england.txt";
 
-        Championship c = new Championship(basePath + "/championships/" + championshipCountry, 2, true);
+        Championship c = new Championship(basePath + "/databasefiles/" + championshipCountry, 2, true);
         c.generateMatches();
         c.playMatches(true);
         c.printResults();

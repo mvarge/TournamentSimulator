@@ -32,7 +32,25 @@ on Wikipedia, where you can find a image description:
 
 ![Demonstration from Wiki](https://upload.wikimedia.org/wikipedia/commons/b/b7/Round-robin_tournament_10teams_en.png)
 
+This way every team is paired in the most optimistic way to play one round at home, followed by another round as away, 
+and to follow the same pairings on the second turn but in a reserved basis.
+
 ## How to use
+
+### Team table
+
+Currently the teams are populated from a `.txt` file inside the `databasefiles` folder. Every line is a team description 
+and the format is `Team Name,Rating`, given that `Team Name`should be a `String` and `Rating` an `Integer` between 0 
+and 20. A file example as it follows:
+
+```
+Valencia,14
+Man City,18
+Genk,7
+APOEL,5
+``` 
+
+### Tournament and Matches
 
 The _Main_ class currently holds two of the same examples as described below.
 
@@ -40,7 +58,7 @@ For creating a whole new Tournament for `england.txt` and playing it:
 
 ```$xslt
         String championshipCountry = "england.txt";
-        Championship c = new Championship(basePath + "/championships/" + championshipCountry, 2, true);
+        Championship c = new Championship(basePath + "/databasefiles/" + championshipCountry, 2, true);
         c.generateMatches();
         c.playMatches(true);
 ```
@@ -85,7 +103,7 @@ Where every column description is as it follows:
 | GD | Goal difference (GF - GA) |
 | M | Team morale | 
 | R | Team rating |
-| Df | Difference between initial morale against rating |
+| Df | Difference between initial morale against final rating |
 | FORM | Complete record of each team form |
 
 
@@ -98,6 +116,8 @@ For playing a single game you can simply do as like:
         m.play(false);
 ```
 
-## More info
+## Author
 
-TBD
+Marcelo Marques S. Varge
+
+_marcelo dot varge at gmail_
