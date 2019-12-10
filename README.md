@@ -48,7 +48,7 @@ For creating a whole new Tournament for `england.txt` and playing it:
 In this case you will simulate round after round and your end result should be something similar as:
 
 ```
-Team	Pts	P	W	D	L	GF	GA	GD	M	R	D	FORM
+Team	Pts	P	W	D	L	GF	GA	GD	M	R	Df	FORM
 Arsenal	80	38	24	8	6	80	37	43	16	20	4	[W, W, W, L, W, D, D, W, W, D, L, W, W, L, W, W, W, L, D, W, W, W, L, L, W, W, D, W, D, W, W, W, W, D, W, W, D, W]
 Liverpo	79	38	25	4	9	77	27	50	19	17	-2	[L, W, W, L, W, W, L, W, W, W, W, W, W, L, W, L, W, W, L, W, D, W, D, D, W, W, W, W, L, L, W, W, W, W, L, W, D, W]
 Man Cit	76	38	22	10	6	70	35	35	18	20	2	[W, W, D, W, L, D, W, W, D, W, W, L, W, L, L, W, W, L, W, W, W, W, D, W, D, W, W, W, W, D, D, W, D, L, W, D, D, W]
@@ -70,6 +70,24 @@ West Br	30	38	7	9	22	24	67	-43	8	5	-3	[D, D, W, D, L, L, L, W, W, L, L, L, L, D,
 Sheffie	24	38	4	12	22	32	79	-47	7	4	-3	[L, L, L, L, L, D, L, W, L, L, W, D, D, D, D, L, L, L, D, L, L, L, D, D, D, L, L, W, L, W, L, L, D, L, L, D, D, L]
 Notting	14	38	3	5	30	13	97	-84	7	3	-4	[L, D, D, D, W, L, L, L, L, L, L, L, L, D, L, L, L, W, L, L, L, L, L, L, L, W, L, L, L, L, L, D, L, L, L, L, L, L]
 ```
+
+Where every column description is as it follows:
+
+| Attribute| Description | 
+| ---------| ----------- |
+| Team | Team name as configured on your `.txt` championship file |
+| Pts | Total amount of points |
+| W | Total wins |
+| D | Total draws |
+| L | Total losses|
+| GF | Goals in favour |
+| GA | Goals taken/against |
+| GD | Goal difference (GF - GA) |
+| M | Team morale | 
+| R | Team rating |
+| Df | Difference between initial morale against rating |
+| FORM | Complete record of each team form |
+
 
 For playing a single game you can simply do as like:
 

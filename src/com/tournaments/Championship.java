@@ -129,7 +129,7 @@ public class Championship {
 
         Collections.sort(this.teams, Collections.reverseOrder());
 
-        System.out.printf("Team\tPts\tP\tW\tD\tL\tGF\tGA\tGD\tM\tR\tD\tFORM\n");
+        System.out.printf("Team\tPts\tP\tW\tD\tL\tGF\tGA\tGD\tM\tR\tDf\tFORM\n");
         for (Team t : this.teams) {
             System.out.printf("%.7s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n", t.getName(), t.getPoints(),
                     t.getTotalMatches(), t.getWins(), t.getDraws(), t.getLosses(), t.getTotalGoalsMade(),
