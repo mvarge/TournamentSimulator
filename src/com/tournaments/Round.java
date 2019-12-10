@@ -6,7 +6,7 @@ import java.util.List;
 public class Round {
 
     List<Match> matches = new ArrayList<Match>();
-    Integer roundNumber;
+    private Integer roundNumber;
 
     public void Round(Integer roundNumber) {
         this.roundNumber = roundNumber;

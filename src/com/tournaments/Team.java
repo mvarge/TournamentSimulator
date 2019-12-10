@@ -4,23 +4,28 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Probably the most complex Class of the project, it handles all of the team aspect and keeps track of its record
+ * throughout a given tournament, since every team instance consumes the same rating aspects and can change
+ * accordingly to its performance in different places
+ */
 public class Team implements Comparable<Team> {
 
     public String name;
-    public int rating;
-    public int points;
-    public int totalGoalsMade;
-    public int totalGoalsTaken;
-    public int goalsMade;
-    public int goalsTaken;
-    public int wins;
-    public int draws;
-    public int losses;
+    private int rating;
+    private int points;
+    private int totalGoalsMade;
+    private int totalGoalsTaken;
+    private int goalsMade;
+    private int goalsTaken;
+    private int wins;
+    private int draws;
+    private int losses;
     private int opponentRating;
     private int winStreak;
     private int lossStreak;
     private int noWinStreak;
-    public int morale;
+    private int morale;
     List<Character> form = new ArrayList<Character>();
 
     public Team(String name, int rating) {
@@ -29,6 +34,12 @@ public class Team implements Comparable<Team> {
         this.morale = rating;
     }
 
+    /**
+     * Just setting initial variables for numbers of goals, this could belong to Match class but I though it was
+     * easier to maintain control around here
+     *
+     * @param opponentRating    For evaluation of rating difference, which is used for some situations
+     */
     public void prepareToPlay(Integer opponentRating) {
         this.goalsMade = 0;
         this.goalsTaken = 0;
@@ -39,7 +50,27 @@ public class Team implements Comparable<Team> {
         return this.points;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public Integer getWins() { return this.wins; }
+
+    public Integer getDraws() { return this.draws; }
+
+    public Integer getLosses() { return this.losses; }
+
+    public Integer getTotalMatches() {
+        return this.wins + this.draws + this.losses;
+    }
+
+    public int getMorale() {
+        return morale;
+    }
+
+    public int getRating() {
+        return rating;
+    }
 
     public Integer getGoalsDifference() { return this.totalGoalsMade - this.totalGoalsTaken; }
 
@@ -59,6 +90,12 @@ public class Team implements Comparable<Team> {
         this.goalsTaken += 1;
     }
 
+    /**
+     * Based on final result, several actions may take place such as rating change, record store is also maintained here
+     * as well win/no-win streak control
+     *
+     * @param result    One of "Win", "Draw" or "Lose"
+     */
     public void finishGame(String result) {
         boolean humiliation = false;
 
@@ -148,6 +185,29 @@ public class Team implements Comparable<Team> {
         return String.valueOf(this.form);
     }
 
+    public int getTotalGoalsMade() {
+        return totalGoalsMade;
+    }
+
+    public int getTotalGoalsTaken() {
+        return totalGoalsTaken;
+    }
+
+    public int getGoalsMade() {
+        return goalsMade;
+    }
+
+    public int getGoalsTaken() {
+        return goalsTaken;
+    }
+
+    /**
+     * Override of compareTo so we can sort a list of team based on number of points, followed by win total and finally
+     * goals difference.
+     *
+     * @param t Just a Team object
+     * @return  returns call result of .compare
+     */
     @Override
     public int compareTo(Team t) {
         return Comparator.comparing(Team::getPoints)

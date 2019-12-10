@@ -8,11 +8,20 @@ import java.util.*;
 public class Championship {
 
     private List<Team> teams;
-    private List<Match> matches = new ArrayList<Match>();
     private Turn[] turns;
     private Integer numberOfTurns;
     private boolean homeFactor;
 
+    /**
+     * Championship class will handle the teams structure and the amount of turns to be played. It handles the logic
+     * for generating an equal number of matches for each turn and separating the teams on each of the rounds
+     * as well
+     *
+     * @param filename      File name used to open and load teams
+     * @param numberOfTurns How many turns are going to be played by this instance
+     * @param homeFactor    If home teams will have their variables applied or not
+     * @throws Exception
+     */
     public Championship (String filename, Integer numberOfTurns, boolean homeFactor) throws Exception {
         this.teams = loadTeams(filename);
         this.turns = new Turn[2];
@@ -29,6 +38,13 @@ public class Championship {
 
     }
 
+    /**
+     * Method to iterate over a file and populate the team Array
+     *
+     * @param filename      Filename position
+     * @return teams        Returns a List<Team> object
+     * @throws Exception
+     */
     private static List<Team> loadTeams(String filename) throws Exception {
 
         List<Team> teams = new ArrayList<Team>();
@@ -61,7 +77,7 @@ public class Championship {
             for (int x = 0; x < regularTeams.size() - 1; x++) {
                 Round r = this.turns[turn].rounds.get(x);
                 for (int i = 0; i < first.size(); i++) {
-                    if (!first.get(i).name.equals(second.get(i).name)) {
+                    if (!first.get(i).getName().equals(second.get(i).getName())) {
                         if (x % 2 == turn) {
                             Match m = new Match(first.get(i), second.get(i));
                             r.addMatch(m);
@@ -79,9 +95,11 @@ public class Championship {
         }
     }
 
-
-
-
+    /**
+     * This method will iterate over the rounds and play every Match within it.
+     *
+     * @param pauseRounds   Will define if we need to press anything to keep going with rounds or not
+     */
     public void playMatches(boolean pauseRounds) {
         /*for (Match m : this.matches) {
             m.play(homeFactor);
@@ -90,7 +108,7 @@ public class Championship {
         for (Turn t : turns) {
             for (Round r : t.rounds) {
                 for (Match m : r.matches) {
-                    m.play(this.homeFactor);
+                    m.playMatch(this.homeFactor);
                 }
                 if (pauseRounds) {
                     this.printResults();
@@ -102,18 +120,21 @@ public class Championship {
 
     }
 
-
-
+    /**
+     * Just an easy way to pretty-print the current status of the championship.
+     *
+     * TODO: Evaluate if something can be improved around here specially on the printint form style
+     */
     public void printResults() {
 
         Collections.sort(this.teams, Collections.reverseOrder());
 
         System.out.printf("Team\tPts\tP\tW\tD\tL\tGF\tGA\tGD\tM\tR\tD\tFORM\n");
         for (Team t : this.teams) {
-            System.out.printf("%.7s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n", t.name, t.points, (t.wins + t.draws + t.losses),
-                    t.wins, t.draws, t.losses,
-                    t.totalGoalsMade, t.totalGoalsTaken, (t.totalGoalsMade - t.totalGoalsTaken), t.morale,
-                    t.rating, (t.rating - t.morale),t.printForm());
+            System.out.printf("%.7s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n", t.getName(), t.getPoints(),
+                    t.getTotalMatches(), t.getWins(), t.getDraws(), t.getLosses(), t.getTotalGoalsMade(),
+                    t.getTotalGoalsTaken(), t.getGoalsDifference(), t.getMorale(),
+                    t.getRating(), (t.getRating() - t.getMorale()),t.printForm());
         }
     }
 

@@ -6,7 +6,10 @@ import java.util.List;
 import java.util.Random;
 
 public class Match {
-
+    /**
+     * Match class is responsible for leveraging all the match aspects and handling the goals opportunities
+     * as well the goals results for each of those.
+     */
     String winner = null;
     HashMap<String, Team> teams = new HashMap<String, Team>();
 
@@ -28,25 +31,28 @@ public class Match {
 
     }
 
-    public void play() {
-        play(true);
+    public void playMatch() {
+        playMatch(true);
     }
 
-    public void play(boolean homeFactor) {
+    /**
+     * @param homeFactor    Defines if home factors are applied such as given more advantage to whoever is the home team
+     */
+    public void playMatch(boolean homeFactor) {
 
         Random rand = new Random();
         int plays = numberOfPlays.get(rand.nextInt(numberOfPlays.size()));
 
-        int homeRating = this.teams.get("Home").rating;
-        int awayRating = this.teams.get("Away").rating;
+        int homeRating = this.teams.get("Home").getRating();
+        int awayRating = this.teams.get("Away").getRating();
 
-        this.teams.get("Home").prepareToPlay(this.teams.get("Away").rating);
-        this.teams.get("Away").prepareToPlay(this.teams.get("Home").rating);
+        this.teams.get("Home").prepareToPlay(this.teams.get("Away").getRating());
+        this.teams.get("Away").prepareToPlay(this.teams.get("Home").getRating());
 
         if (homeFactor)
             homeRating += Math.random() * 2;
 
-        if (this.teams.get("Home").morale >= this.teams.get("Away").morale) {
+        if (this.teams.get("Home").getMorale() >= this.teams.get("Away").getMorale()) {
             homeRating += (int) (Math.random() * 2);
         }
 
@@ -74,14 +80,14 @@ public class Match {
         }
 
         System.out.printf("Final score: %s %d x %d %s\n", this.teams.get("Home").name,
-                this.teams.get("Home").goalsMade, this.teams.get("Away").goalsMade, this.teams.get("Away").name);
-        if (this.teams.get("Home").goalsMade > this.teams.get("Away").goalsMade) {
+                this.teams.get("Home").getGoalsMade(), this.teams.get("Away").getGoalsMade(), this.teams.get("Away").name);
+        if (this.teams.get("Home").getGoalsMade() > this.teams.get("Away").getGoalsMade()) {
             this.teams.get("Home").finishGame("Win");
             this.teams.get("Away").finishGame("Lose");
-        } else if (this.teams.get("Away").goalsMade > this.teams.get("Home").goalsMade) {
+        } else if (this.teams.get("Away").getGoalsMade() > this.teams.get("Home").getGoalsMade()) {
             this.teams.get("Away").finishGame("Win");
             this.teams.get("Home").finishGame("Lose");
-        } else if (this.teams.get("Home").goalsMade == this.teams.get("Away").goalsMade) {
+        } else if (this.teams.get("Home").getGoalsMade() == this.teams.get("Away").getGoalsMade()) {
             this.teams.get("Home").finishGame("Draw");
             this.teams.get("Away").finishGame("Draw");
         }
