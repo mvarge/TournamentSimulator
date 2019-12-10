@@ -4,7 +4,7 @@ This project is intended to be an experiment for random probabilities calculatio
 well as a demonstration over the [Round-Robin tournament algorithm](https://en.wikipedia.org/wiki/Round-robin_tournament), 
 used to randomize matches between all teams within a given tournament.
 
-## About
+## What is it?
 
 This is a project to simulate football matches and tournaments/championships, based on random probabilities extracted 
 from a given team rating, plus a random amount of opportunities of goals within a match.
@@ -53,6 +53,8 @@ APOEL,5
 ### Tournament and Matches
 
 The _Main_ class currently holds two of the same examples as described below.
+
+#### Tournament
 
 For creating a whole new Tournament for `england.txt` and playing it:
 
@@ -106,6 +108,7 @@ Where every column description is as it follows:
 | Df | Difference between initial morale against final rating |
 | FORM | Complete record of each team form |
 
+#### Single Match
 
 For playing a single game you can simply do as like:
 
@@ -113,7 +116,7 @@ For playing a single game you can simply do as like:
         Team homeTeam = new Team("Team 1 name", 19);
         Team awayTeam = new Team("Team 2 name", 14);
         Match m = new Match(homeTeam, awayTeam);
-        m.play(false);
+        m.play(false); //No homeFactor for this match since false as method param
 ```
 
 ## Author
