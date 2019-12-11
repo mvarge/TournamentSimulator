@@ -64,10 +64,10 @@ public class Championship {
     }
 
     public void generateMatches() {
-
         List<Team> regularTeams = new LinkedList<Team>(this.teams);
 
         int size = regularTeams.size();
+
         List<Team> first = new LinkedList<Team>(regularTeams.subList(0, (size) / 2));
         List<Team> second = new LinkedList<Team>(regularTeams.subList((size) / 2, size));
 
@@ -78,6 +78,8 @@ public class Championship {
                 Round r = this.turns[turn].rounds.get(x);
                 for (int i = 0; i < first.size(); i++) {
                     if (!first.get(i).getName().equals(second.get(i).getName())) {
+                        // Trying the module of 2 against the round number guarantees that every round changes
+                        // the home and away team.
                         if (x % 2 == turn) {
                             Match m = new Match(first.get(i), second.get(i));
                             r.addMatch(m);

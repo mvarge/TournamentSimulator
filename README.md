@@ -37,7 +37,25 @@ and to follow the same pairings on the second turn but in a reserved basis.
 
 ## How to use
 
-### Team table
+### Tournament and Matches
+
+There are two approaches for use in this project, that are matches and tournaments - which is built on top of matches
+with some add-ons like turns and rounds. 
+
+#### Single Match
+
+For playing a single game you can simply do as like:
+
+```
+        Team homeTeam = new Team("Team 1 name", 19);
+        Team awayTeam = new Team("Team 2 name", 14);
+        Match m = new Match(homeTeam, awayTeam);
+        m.play(false); //No homeFactor for this match since false as method param
+```
+
+#### Tournament
+
+In order to create a tournament you must have defined a team table which will be used as source to your tournament.
 
 Currently the teams are populated from a `.txt` file inside the `databasefiles` folder. Every line is a team description 
 and the format is `Team Name,Rating`, given that `Team Name`should be a `String` and `Rating` an `Integer` between 0 
@@ -50,13 +68,7 @@ Genk,7
 APOEL,5
 ``` 
 
-### Tournament and Matches
-
-The _Main_ class currently holds two of the same examples as described below.
-
-#### Tournament
-
-For creating a whole new Tournament for `england.txt` and playing it:
+For example, to create a whole new Tournament using `england.txt` and playing it:
 
 ```$xslt
         String championshipCountry = "england.txt";
@@ -108,16 +120,6 @@ Where every column description is as it follows:
 | Df | Difference between initial morale against final rating |
 | FORM | Complete record of each team form |
 
-#### Single Match
-
-For playing a single game you can simply do as like:
-
-```
-        Team homeTeam = new Team("Team 1 name", 19);
-        Team awayTeam = new Team("Team 2 name", 14);
-        Match m = new Match(homeTeam, awayTeam);
-        m.play(false); //No homeFactor for this match since false as method param
-```
 
 ## Author
 
