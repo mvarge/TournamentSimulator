@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
+const PORT = 8080;
 
 const ROOT = path.join(__dirname, '..');
 const CLASS_PATH = path.join(ROOT, 'out');
