@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tournament Simulator</title>
+  <style>
+    /* ── Reset & base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:   #1a7a3c;
+      --green2:  #23a455;
+      --dark:    #0f1923;
+      --card:    #16232e;
+      --card2:   #1c2d3a;
+      --border:  #243647;
+      --text:    #e8edf2;
+      --muted:   #7a9ab5;
+      --gold:    #f5c842;
+      --silver:  #b0bec5;
+      --bronze:  #cd7f32;
+      --win:     #2ecc71;
+      --draw:    #f39c12;
+      --loss:    #e74c3c;
+      --radius:  10px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #0d2137 0%, #0f3d20 100%);
+      border-bottom: 2px solid var(--green);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header .logo { font-size: 2rem; }
+    header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; }
+    header p { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Main layout ───────────────────────────────────────── */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* ── Control bar ───────────────────────────────────────── */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .controls label { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+    .controls select {
+      background: var(--dark);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 8px 14px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      min-width: 180px;
+    }
+    .controls select:focus { outline: none; border-color: var(--green2); }
+
+    .btn {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 24px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--green2); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { background: #2a3f50; color: var(--muted); cursor: not-allowed; }
+
+    .spinner {
+      display: none;
+      width: 22px; height: 22px;
+      border: 3px solid var(--border);
+      border-top-color: var(--green2);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Tabs ──────────────────────────────────────────────── */
+    .tabs {
+      display: none;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--muted);
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      margin-bottom: -2px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--green2); border-bottom-color: var(--green2); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Standings table ───────────────────────────────────── */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      background: var(--card);
+    }
+    thead th {
+      background: var(--card2);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 10px 12px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    thead th:nth-child(2) { text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:hover { background: var(--card2); }
+    tbody td { padding: 10px 12px; text-align: center; white-space: nowrap; }
+    tbody td:nth-child(2) { text-align: left; font-weight: 600; }
+
+    .pos-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+    .pos-1 { background: var(--gold); color: #000; }
+    .pos-2 { background: var(--silver); color: #000; }
+    .pos-3 { background: var(--bronze); color: #fff; }
+    .pos-n { background: var(--border); color: var(--muted); }
+
+    .pts { font-weight: 700; font-size: 1rem; color: var(--text); }
+    .gd-pos { color: var(--win); }
+    .gd-neg { color: var(--loss); }
+
+    /* morale / rating bars */
+    .bar-cell { min-width: 90px; }
+    .bar-wrap { display: flex; align-items: center; gap: 6px; }
+    .bar-track {
+      flex: 1; height: 6px; background: var(--border);
+      border-radius: 3px; overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+    .bar-morale .bar-fill { background: var(--draw); }
+    .bar-rating .bar-fill { background: var(--green2); }
+    .bar-val { font-size: 0.75rem; color: var(--muted); min-width: 18px; }
+
+    /* form pills */
+    .form-strip { display: flex; gap: 3px; flex-wrap: nowrap; }
+    .form-pill {
+      width: 14px; height: 14px; border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .form-W { background: var(--win); }
+    .form-D { background: var(--draw); }
+    .form-L { background: var(--loss); }
+
+    /* ── Results tab ───────────────────────────────────────── */
+    .rounds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .round-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .round-header {
+      background: var(--card2);
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .match-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 7px 14px;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .match-row:last-child { border-bottom: none; }
+    .match-home { text-align: right; font-weight: 600; }
+    .match-away { text-align: left; font-weight: 600; }
+    .match-score {
+      background: var(--dark);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      text-align: center;
+      min-width: 48px;
+    }
+    .match-row.home-win .match-home { color: var(--win); }
+    .match-row.away-win .match-away { color: var(--win); }
+    .match-row.draw .match-score { color: var(--draw); }
+
+    /* ── Stats tab ─────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .stat-card h3 {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-bottom: none; }
+    .stat-val { font-weight: 700; color: var(--green2); }
+
+    /* ── Empty / error state ───────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 4rem; margin-bottom: 16px; }
+    .empty-state h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--text); }
+    .empty-state p { font-size: 0.9rem; }
+
+    .error-msg {
+      background: rgba(231,76,60,0.15);
+      border: 1px solid var(--loss);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      color: #ff8a80;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    /* ── Scrollable rounds ─────────────────────────────────── */
+    .rounds-filter {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .rounds-filter label { font-size: 0.82rem; color: var(--muted); }
+    .rounds-filter select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 14px 16px; }
+      main { padding: 20px 12px; }
+      .controls { padding: 14px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏆</div>
+  <div>
+    <h1>Tournament Simulator</h1>
+    <p>Round-Robin football league simulation engine</p>
+  </div>
+</header>
+
+<main>
+  <!-- Controls -->
+  <div class="controls">
+    <label for="league-select">League</label>
+    <select id="league-select">
+      <option value="">Loading leagues…</option>
+    </select>
+    <button class="btn" id="sim-btn" onclick="runSimulation()">▶ Simulate Season</button>
+    <div class="spinner" id="spinner"></div>
+    <span id="sim-time" style="font-size:0.8rem;color:var(--muted);margin-left:auto;"></span>
+  </div>
+
+  <div id="error-box" class="error-msg" style="display:none;"></div>
+
+  <!-- Tabs (hidden until first sim) -->
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" onclick="switchTab('standings')">📊 Standings</button>
+    <button class="tab-btn" onclick="switchTab('results')">⚽ Results</button>
+    <button class="tab-btn" onclick="switchTab('stats')">📈 Stats</button>
+  </div>
+
+  <!-- Tab: Standings -->
+  <div class="tab-panel active" id="tab-standings">
+    <div class="empty-state" id="empty-state">
+      <div class="icon">⚽</div>
+      <h2>Ready to simulate</h2>
+      <p>Pick a league and hit <strong>Simulate Season</strong> to run the tournament.</p>
+    </div>
+    <div class="table-wrap" id="standings-table" style="display:none;"></div>
+  </div>
+
+  <!-- Tab: Results -->
+  <div class="tab-panel" id="tab-results">
+    <div class="rounds-filter">
+      <label>Turn</label>
+      <select id="turn-filter" onchange="renderRounds()">
+        <option value="0">All Turns</option>
+        <option value="1">Turn 1</option>
+        <option value="2">Turn 2</option>
+      </select>
+    </div>
+    <div class="rounds-grid" id="rounds-grid"></div>
+  </div>
+
+  <!-- Tab: Stats -->
+  <div class="tab-panel" id="tab-stats">
+    <div class="stats-grid" id="stats-grid"></div>
+  </div>
+</main>
+
+<script>
+  let simData = null;
+
+  // ── Boot: load leagues ──────────────────────────────────────
+  (async () => {
+    try {
+      const res = await fetch('/api/leagues');
+      const leagues = await res.json();
+      const sel = document.getElementById('league-select');
+      sel.innerHTML = leagues.map(l =>
+        `<option value="${l.id}">${l.name}</option>`
+      ).join('');
+    } catch (e) {
+      document.getElementById('league-select').innerHTML = '<option value="england.txt">ENGLAND</option>';
+    }
+  })();
+
+  // ── Tab switching ───────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['standings','results','stats'][i] === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  // ── Run simulation ──────────────────────────────────────────
+  async function runSimulation() {
+    const league = document.getElementById('league-select').value;
+    const btn = document.getElementById('sim-btn');
+    const spinner = document.getElementById('spinner');
+    const errBox = document.getElementById('error-box');
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    errBox.style.display = 'none';
+    document.getElementById('sim-time').textContent = '';
+
+    const t0 = Date.now();
+    try {
+      const res = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ league })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unknown error');
+
+      simData = data;
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(2);
+      document.getElementById('sim-time').textContent = `Simulated in ${elapsed}s`;
+
+      document.getElementById('tabs').style.display = 'flex';
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('standings-table').style.display = 'block';
+
+      renderStandings(data.standings);
+      renderRounds();
+      renderStats(data.standings, data.rounds);
+    } catch (e) {
+      errBox.textContent = '⚠ ' + e.message;
+      errBox.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+    }
+  }
+
+  // ── Standings ───────────────────────────────────────────────
+  function renderStandings(standings) {
+    const wrap = document.getElementById('standings-table');
+    const rows = standings.map((t, i) => {
+      const pos = i + 1;
+      const posClass = pos <= 3 ? `pos-${pos}` : 'pos-n';
+      const gdClass = t.gd > 0 ? 'gd-pos' : t.gd < 0 ? 'gd-neg' : '';
+      const gdStr = t.gd > 0 ? '+' + t.gd : t.gd;
+
+      const moraleWidth = Math.round((t.morale / 20) * 100);
+      const ratingWidth = Math.round((t.rating / 20) * 100);
+
+      const formHtml = t.form.slice(-10).map(f =>
+        `<span class="form-pill form-${f}" title="${f === 'W' ? 'Win' : f === 'D' ? 'Draw' : 'Loss'}">${f}</span>`
+      ).join('');
+
+      return `<tr>
+        <td><span class="pos-badge ${posClass}">${pos}</span></td>
+        <td>${escHtml(t.name)}</td>
+        <td class="pts">${t.pts}</td>
+        <td>${t.played}</td>
+        <td style="color:var(--win)">${t.w}</td>
+        <td style="color:var(--draw)">${t.d}</td>
+        <td style="color:var(--loss)">${t.l}</td>
+        <td>${t.gf}</td>
+        <td>${t.ga}</td>
+        <td class="${gdClass}">${gdStr}</td>
+        <td class="bar-cell bar-morale">
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill" style="width:${moraleWidth}%"></div></div>
+            <span class="bar-val">${t.morale}</span>
+          </div>
+        </td>
+        <td class="bar-cell bar-rating">
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill" style="width:${ratingWidth}%"></div></div>
+            <span class="bar-val">${t.rating}</span>
+          </div>
+        </td>
+        <td><div class="form-strip">${formHtml}</div></td>
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th style="text-align:left">Team</th>
+            <th>Pts</th><th>P</th>
+            <th>W</th><th>D</th><th>L</th>
+            <th>GF</th><th>GA</th><th>GD</th>
+            <th>Morale</th><th>Rating</th>
+            <th>Last 10</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ── Results ─────────────────────────────────────────────────
+  function renderRounds() {
+    if (!simData) return;
+    const turnFilter = parseInt(document.getElementById('turn-filter').value);
+    const grid = document.getElementById('rounds-grid');
+
+    const rounds = turnFilter === 0
+      ? simData.rounds
+      : simData.rounds.filter(r => r.turn === turnFilter);
+
+    grid.innerHTML = rounds.map(r => {
+      const matches = r.matches.map(m => {
+        let rowClass = '';
+        let scoreStyle = '';
+        if (m.winner === m.home) { rowClass = 'home-win'; }
+        else if (m.winner === m.away) { rowClass = 'away-win'; }
+        else { rowClass = 'draw'; scoreStyle = 'color:var(--draw)'; }
+
+        return `<div class="match-row ${rowClass}">
+          <span class="match-home">${escHtml(m.home)}</span>
+          <span class="match-score" style="${scoreStyle}">${m.homeGoals} – ${m.awayGoals}</span>
+          <span class="match-away">${escHtml(m.away)}</span>
+        </div>`;
+      }).join('');
+
+      return `<div class="round-card">
+        <div class="round-header">Turn ${r.turn} · Round ${r.round}</div>
+        ${matches}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Stats ───────────────────────────────────────────────────
+  function renderStats(standings, rounds) {
+    const grid = document.getElementById('stats-grid');
+
+    // Top scorers (by GF)
+    const topGF = [...standings].sort((a,b) => b.gf - a.gf).slice(0, 5);
+    // Best defence (fewest GA)
+    const bestDef = [...standings].sort((a,b) => a.ga - b.ga).slice(0, 5);
+    // Highest morale
+    const topMorale = [...standings].sort((a,b) => b.morale - a.morale).slice(0, 5);
+    // Most improved (rating vs initialRating)
+    const mostImproved = [...standings]
+      .sort((a,b) => (b.rating - b.initialRating) - (a.rating - a.initialRating))
+      .slice(0, 5);
+
+    // Score tallies
+    let totalGoals = 0, totalMatches = 0, draws = 0, highScore = 0, highScoreMatch = '';
+    rounds.forEach(r => r.matches.forEach(m => {
+      const g = m.homeGoals + m.awayGoals;
+      totalGoals += g;
+      totalMatches++;
+      if (!m.winner) draws++;
+      if (g > highScore) {
+        highScore = g;
+        highScoreMatch = `${m.home} ${m.homeGoals}–${m.awayGoals} ${m.away}`;
+      }
+    }));
+
+    const avgGoals = totalMatches > 0 ? (totalGoals / totalMatches).toFixed(2) : '-';
+    const drawPct = totalMatches > 0 ? ((draws / totalMatches) * 100).toFixed(1) : '-';
+
+    grid.innerHTML = `
+      <div class="stat-card">
+        <h3>⚽ Season Overview</h3>
+        <div class="stat-item"><span>Total matches</span><span class="stat-val">${totalMatches}</span></div>
+        <div class="stat-item"><span>Total goals</span><span class="stat-val">${totalGoals}</span></div>
+        <div class="stat-item"><span>Avg goals/match</span><span class="stat-val">${avgGoals}</span></div>
+        <div class="stat-item"><span>Draw rate</span><span class="stat-val">${drawPct}%</span></div>
+        <div class="stat-item"><span>Highest scoring</span><span class="stat-val" style="font-size:0.75rem">${escHtml(highScoreMatch)}</span></div>
+      </div>
+
+      <div class="stat-card">
+        <h3>🏹 Top Attack (GF)</h3>
+        ${topGF.map((t,i) => `<div class="stat-item">
+          <span>${i+1}. ${escHtml(t.name)}</span>
+          <span class="stat-val">${t.gf}</span>
+        </div>`).join('')}
+      </div>
+
+      <div class="stat-card">
+        <h3>🛡 Best Defence (GA)</h3>
+        ${bestDef.map((t,i) => `<div class="stat-item">
+          <span>${i+1}. ${escHtml(t.name)}</span>
+          <span class="stat-val">${t.ga}</span>
+        </div>`).join('')}
+      </div>
+
+      <div class="stat-card">
+        <h3>🔥 Highest Morale</h3>
+        ${topMorale.map((t,i) => `<div class="stat-item">
+          <span>${i+1}. ${escHtml(t.name)}</span>
+          <span class="stat-val">${t.morale}/20</span>
+        </div>`).join('')}
+      </div>
+
+      <div class="stat-card">
+        <h3>📈 Most Improved (Rating)</h3>
+        ${mostImproved.map((t,i) => {
+          const diff = t.rating - t.initialRating;
+          const sign = diff >= 0 ? '+' : '';
+          return `<div class="stat-item">
+            <span>${i+1}. ${escHtml(t.name)}</span>
+            <span class="stat-val" style="color:${diff>=0?'var(--win)':'var(--loss)'}">${sign}${diff} (${t.initialRating}→${t.rating})</span>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // ── Utility ─────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

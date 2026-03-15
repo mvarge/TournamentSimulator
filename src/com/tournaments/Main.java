@@ -8,20 +8,27 @@ public class Main {
 
         String basePath = new File("").getAbsolutePath();
 
+        // Default values
         String championshipCountry = "england.txt";
+        boolean jsonMode = false;
+
+        // Parse args: java Main [league_file] [--json]
+        for (String arg : args) {
+            if (arg.equals("--json")) {
+                jsonMode = true;
+            } else if (arg.endsWith(".txt")) {
+                championshipCountry = arg;
+            }
+        }
 
         Championship c = new Championship(basePath + "/databasefiles/" + championshipCountry, 2, true);
         c.generateMatches();
-        c.playMatches(true);
-        c.printResults();
+        c.playMatches(false);
 
-        //Example for simulating a single match:
-        //Team homeTeam = new Team("Team 1 name", 19);
-        //Team awayTeam = new Team("Team 2 name", 14);
-        //Match m = new Match(homeTeam, awayTeam);
-        //m.play(false);
-
+        if (jsonMode) {
+            c.printJson();
+        } else {
+            c.printResults();
+        }
     }
 }
-
-

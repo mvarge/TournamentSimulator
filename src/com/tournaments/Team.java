@@ -13,6 +13,8 @@ public class Team implements Comparable<Team> {
 
     public String name;
     private int rating;
+    private int initialRating;
+    private int morale;       // FIX: morale is now a live variable, updated after each result
     private int points;
     private int totalGoalsMade;
     private int totalGoalsTaken;
@@ -25,17 +27,17 @@ public class Team implements Comparable<Team> {
     private int winStreak;
     private int lossStreak;
     private int noWinStreak;
-    private int morale;
     List<Character> form = new ArrayList<Character>();
 
     public Team(String name, int rating) {
         this.name = name;
         this.rating = rating;
-        this.morale = rating;
+        this.initialRating = rating;
+        this.morale = rating;  // starts equal to rating
     }
 
     /**
-     * Just setting initial variables for numbers of goals, this could belong to Match class but I though it was
+     * Just setting initial variables for numbers of goals, this could belong to Match class but I thought it was
      * easier to maintain control around here
      *
      * @param opponentRating    For evaluation of rating difference, which is used for some situations
@@ -72,15 +74,11 @@ public class Team implements Comparable<Team> {
         return rating;
     }
 
-    public Integer getGoalsDifference() { return this.totalGoalsMade - this.totalGoalsTaken; }
-
-    public void calcStatistics(Match m) {
-        if (m.winner == this.name) {
-            this.points += 3;
-        } else if (m.winner == null) {
-            this.points += 1;
-        }
+    public int getInitialRating() {
+        return initialRating;
     }
+
+    public Integer getGoalsDifference() { return this.totalGoalsMade - this.totalGoalsTaken; }
 
     public void goalInFavor() {
         this.goalsMade += 1;
@@ -91,8 +89,10 @@ public class Team implements Comparable<Team> {
     }
 
     /**
-     * Based on final result, several actions may take place such as rating change, record store is also maintained here
-     * as well win/no-win streak control
+     * Based on final result, several actions may take place such as rating change, morale change,
+     * record store is also maintained here as well win/no-win streak control.
+     *
+     * FIX: morale is now updated here after every result (was never mutated before).
      *
      * @param result    One of "Win", "Draw" or "Lose"
      */
@@ -111,6 +111,13 @@ public class Team implements Comparable<Team> {
                 this.wins += 1;
                 this.form.add('W');
                 this.winStreak += 1;
+                this.lossStreak = 0;
+                this.noWinStreak = 0;
+
+                // FIX: morale rises on a win
+                if (this.morale < 20) this.morale = Math.min(20, this.morale + 1);
+                if (humiliation && this.morale < 20) this.morale = Math.min(20, this.morale + 1);
+
                 if (this.rating > 20) {
                     this.rating = 20;
                 }
@@ -123,7 +130,7 @@ public class Team implements Comparable<Team> {
                         this.rating += (int) (Math.random() * 2);
                     if (this.opponentRating >= (this.rating * 2)) {
                         this.rating += (int) (Math.random() * 2);
-                        System.out.println("Unexpected win!");
+                        System.err.println("Unexpected win! " + this.name);
                     }
                     if (this.rating < 4) {
                         this.rating += (int) (Math.random() * 2);
@@ -132,13 +139,16 @@ public class Team implements Comparable<Team> {
                         }
                     }
                 }
+                // FIX: Sayajin now correctly checks against live morale (not static)
                 if (this.morale < 10 && this.rating < 10) {
                     if ((int) (Math.random() * 10) == 1) {
                         this.rating += (int) (Math.random() * 5);
-                        System.out.println("Sayajin!!!");
+                        this.morale += (int) (Math.random() * 3);
+                        System.err.println("Sayajin!!! " + this.name);
                     }
                 }
                 break;
+
             case "Draw":
                 this.points += 1;
                 this.totalGoalsMade += this.goalsMade;
@@ -146,7 +156,13 @@ public class Team implements Comparable<Team> {
                 this.draws += 1;
                 this.form.add('D');
                 this.noWinStreak += 1;
+                this.winStreak = 0;
+                // FIX: morale slightly drops on a no-win streak
+                if (this.noWinStreak >= 3 && this.morale > 1) {
+                    this.morale = Math.max(1, this.morale - 1);
+                }
                 break;
+
             case "Lose":
                 this.totalGoalsMade += this.goalsMade;
                 this.totalGoalsTaken += this.goalsTaken;
@@ -154,6 +170,12 @@ public class Team implements Comparable<Team> {
                 this.form.add('L');
                 this.lossStreak += 1;
                 this.noWinStreak += 1;
+                this.winStreak = 0;
+
+                // FIX: morale drops on a loss
+                if (this.morale > 1) this.morale = Math.max(1, this.morale - 1);
+                if (humiliation && this.morale > 1) this.morale = Math.max(1, this.morale - 1);
+
                 if (this.rating > 2) {
                     if (lossStreak >= 3) {
                         this.rating -= (int) (Math.random() * 2);
@@ -163,22 +185,30 @@ public class Team implements Comparable<Team> {
                         this.rating -= (int) (Math.random() * 2);
                     if (this.opponentRating <= (this.rating / 2)) {
                         this.rating -= (int) (Math.random() * 2);
-                        System.out.println("Unexpected loss!");
+                        System.err.println("Unexpected loss! " + this.name);
                     }
                 }
+                // FIX: Big Failure now correctly checks live morale
                 if (this.morale > 10) {
                     if ((int) (Math.random() * 10) == 10) {
                         this.rating -= (int) (Math.random() * 5);
-                        System.out.println("Big Failure!!!");
+                        this.morale -= (int) (Math.random() * 3);
+                        System.err.println("Big Failure!!! " + this.name);
                     }
                 }
                 break;
+
             default:
                 break;
         }
-        if (this.rating <= (this.morale / 2)) {
+
+        // Floor guard: rating can't collapse too far below initial morale
+        if (this.rating <= (this.initialRating / 2)) {
             this.rating += (int) (Math.random() * 2);
         }
+        // Clamp rating
+        this.rating = Math.max(1, Math.min(20, this.rating));
+        this.morale = Math.max(1, Math.min(20, this.morale));
     }
 
     public String printForm() {
