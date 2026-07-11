@@ -1,20 +1,20 @@
-SPFC,8
-Corinthians,7
-Palmeiras,10
-Paysandu,4
-Flamengo,10
-Cruzeiro,6
-Atl-MG,6
-Internacional,7
-Gremio,8
-Santos,7
-Fortaleza,6
-Goias,6
-Avai,5
-Athletico,7
-Ceara,5
-Chapecoense,5
-Botafogo,6
-Vasco,6
-Fluminense,7
-Coritiba,5
+São Paulo,34,46
+Corinthians,36,34
+Palmeiras,53,47
+Paysandu,18,22
+Flamengo,44,56
+Cruzeiro,23,37
+Atlético Mineiro,29,31
+Internacional,36,34
+Grêmio,34,46
+Santos,34,36
+Fortaleza,25,35
+Goiás,34,26
+Avaí,25,25
+Athletico Paranaense,41,29
+Ceará,28,22
+Chapecoense,22,28
+Botafogo,33,27
+Vasco da Gama,33,27
+Fluminense,33,37
+Coritiba,25,25

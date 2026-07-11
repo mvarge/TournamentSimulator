@@ -1,20 +1,20 @@
-Barcelo,19
-Villarr,15
-Zaragoz,14
-Cadiz,12
-Athleti,15
-Real Ma,19
-La Coru,12
-Huesca,10
-Levante,10
-Vallado,9
-Numanci,9
-Betis,9
-Valenci,10
-Rayo Va,8
-Atletic,11
-Espanyo,7
-Osasuna,7
-Granada,7
-Malaga,7
-Real So,7
+Barcelona,100,89
+Villarreal,68,82
+Zaragoza,65,75
+Cádiz,53,67
+Athletic Bilbao,79,71
+Real Madrid,97,93
+Deportivo La Coruña,55,65
+Huesca,49,51
+Levante,48,52
+Valladolid,43,47
+Numancia,51,39
+Real Betis,41,49
+Valencia,55,45
+Rayo Vallecano,37,43
+Atlético Madrid,55,55
+Espanyol,41,29
+Osasuna,34,36
+Granada,29,41
+Málaga,41,29
+Real Sociedad,30,40

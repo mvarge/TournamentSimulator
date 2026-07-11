@@ -14,15 +14,24 @@ amount of goals scored or suffered, etc.
 
 ## Approach for Matches
 
-The basic principle of a match are:
+Matches are simulated **minute by minute**, Football Manager style:
 
-* The total number of goal opportunities in a match is a random choice between an integer Array
-* For each goal opportunity:
-  * A random Integer number is choose for each team, within a range of 0 as minimum and the team rating as a maximum
-  * Whoever has the biggest number, scores a goal
-  
-Every team contains a rating and a morale setting, where the morale is variable thorough a single tournament and some 
-decisions affect each of its behaviors.
+* The engine walks through all 90 minutes (plus 1–4 minutes of stoppage time)
+* Each minute there is a chance of an attacking situation — stronger attacks create more chances
+* Which side gets the chance is weighted by each team's **Attack** rating
+* Whether the chance becomes a goal is a duel between the attacker's **Attack** and the defender's **Defence**
+* Chances that don't result in goals become saves, misses or shots off the woodwork
+* Fouls can produce yellow and red cards — a red card weakens the punished side for the rest of the match
+* Every event is recorded with a minute and a commentary line, so any match can be replayed/watched
+
+Other match modifiers:
+
+* **Home advantage**: the home side gets a small random boost to attack and defence
+* **Morale edge**: the side with higher morale gets a small attacking boost
+* **Upsets**: in ~10% of matches the two sides effectively swap strengths for the day
+
+Every team contains **Attack**, **Defence** and a **Morale** setting, all variable throughout a single tournament —
+results, streaks, humiliating scorelines and unexpected wins/losses shift them as the season progresses.
 
 ## Round Robin Tournament Algorithm
 
@@ -58,15 +67,71 @@ For playing a single game you can simply do as like:
 In order to create a tournament you must have defined a team table which will be used as source to your tournament.
 
 Currently the teams are populated from a `.txt` file inside the `databasefiles` folder. Every line is a team description 
-and the format is `Team Name,Rating`, given that `Team Name`should be a `String` and `Rating` an `Integer` between 0 
-and 20. A file example as it follows:
+and the format is `Team Name,Attack,Defence`, given that `Team Name` should be a `String` and both `Attack` and `Defence` 
+`Integer`s between 5 and 100. The legacy format `Team Name,Rating` is still supported (attack = defence = rating). A file 
+example as it follows:
 
 ```
-Valencia,14
-Man City,18
-Genk,7
-APOEL,5
+Valencia,72,68
+Man City,94,86
+Genk,38,32
+APOEL,25
 ``` 
+
+### Rating Scale (0–100)
+
+Ratings were expanded from the original 0–20 scale to **5–100** (×5 multiplier) to allow for finer granularity between 
+teams and more realistic in-season drift. The rough tier mapping is:
+
+| Tier | Range | Description |
+|------|-------|-------------|
+| World-class | 90–100 | Elite clubs (e.g. Bayern, Real Madrid, Liverpool) |
+| Strong | 70–89 | Solid top-flight sides with European ambitions |
+| Mid-table | 45–69 | Established top-flight clubs |
+| Lower-mid | 25–44 | Relegation battlers / promoted sides |
+| Weak | 5–24 | Lower-division / reserve teams |
+
+Rating drift per match is proportional — a win streak awards up to **+10 pts**, a loss streak deducts up to **−10 pts**, 
+and morale shifts by **±5 pts** per result. Scoring 4+ goals boosts Attack, keeping a clean sheet boosts Defence, and 
+conceding 4+ hurts Defence. Clamps keep every team between **5** (floor) and **100** (ceiling). Standings tie-breakers 
+follow standard football rules: points → goal difference → goals for → wins.
+
+### Watching a match (CLI)
+
+You can watch any single match minute by minute, with live commentary, using `--watch`:
+
+```
+java -cp out com.tournaments.Main england.txt --watch Chelsea Arsenal
+```
+
+Omit the team names to watch two random teams from the league. Example output:
+
+```
+=== Chelsea (Att 82 / Def 98) vs Arsenal (Att 79 / Def 81) ===
+
+  1'    The referee blows the whistle — we are underway!
+ 23' ⚽ GOOOAL! Arsenal find the back of the net!  (0 x 1)
+ 27' 🥅 Off the post! Chelsea can't believe it!
+ 39' 🟨 Arsenal pick up a yellow card for dissent.
+ 45' ⏱  Half-time: Chelsea 0 x 1 Arsenal
+ 63' ⚽ GOAL! A clinical finish from Chelsea!  (1 x 1)
+ 90' ⏱  Full-time: Chelsea 1 x 1 Arsenal
+```
+
+### Web UI
+
+A web interface is available under `webapp/`:
+
+```
+cd webapp && npm install && node server.js
+```
+
+Then open http://localhost:8080, pick a league and hit **Simulate Season**. Besides standings, results and stats,
+any match in the Results tab can be clicked to open a **Watch Match** replay with animated minute-by-minute
+commentary (adjustable speed, skip to full-time).
+
+You can also run a full season on the CLI with `--json` to get the entire simulation (standings, every round and
+every match's event feed) as structured JSON on stdout.
 
 For example, to create a whole new Tournament using `england.txt` and playing it:
 
@@ -116,8 +181,9 @@ Where every column description is as it follows:
 | GA | Goals taken/against |
 | GD | Goal difference (GF - GA) |
 | M | Team morale | 
-| R | Team rating |
-| Df | Difference between initial morale against final rating |
+| Att | Team attack rating |
+| Def | Team defence rating |
+| R | Team overall rating (average of Att and Def) |
 | FORM | Complete record of each team form |
 
 
