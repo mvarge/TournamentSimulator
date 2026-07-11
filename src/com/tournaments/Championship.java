@@ -116,6 +116,7 @@ public class Championship {
                     result.put("awayGoals", m.teams.get("Away").getGoalsMade());
                     result.put("winner", m.winner != null ? m.winner.trim() : null);
                     result.put("events", m.getEvents());
+                    result.put("momentum", m.getMomentum());
                     // Team state snapshots AFTER this match — lets the frontend
                     // rebuild standings incrementally as matches are revealed.
                     result.put("homeState", snapshot(m.teams.get("Home")));
@@ -256,6 +257,15 @@ public class Championship {
                     sb.append("\"text\":\"").append(escape(ev.text)).append("\"");
                     sb.append("}");
                     if (e < events.size() - 1) sb.append(",");
+                }
+                sb.append("],");
+                // per-minute momentum (positive = home pressure)
+                sb.append("\"momentum\":[");
+                @SuppressWarnings("unchecked")
+                List<Integer> moms = (List<Integer>) match.get("momentum");
+                for (int q = 0; q < moms.size(); q++) {
+                    sb.append(moms.get(q));
+                    if (q < moms.size() - 1) sb.append(",");
                 }
                 sb.append("],");
                 // post-match team state snapshots

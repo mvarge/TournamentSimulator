@@ -426,8 +426,8 @@
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: var(--card); border-radius: 8px; width: 100%; max-width: 640px;
-      max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+      background: var(--card); border-radius: 8px; width: 100%; max-width: 720px;
+      max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
       box-shadow: 0 24px 60px rgba(0,0,0,0.4);
     }
     .scorebug {
@@ -456,7 +456,42 @@
     .modal-close:hover { background: rgba(255,255,255,0.25); }
 
     .modal-controls { display: flex; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--line); align-items: center; }
-    .commentary { overflow-y: auto; padding: 14px 20px; display: flex; flex-direction: column; gap: 4px; min-height: 280px; }
+
+    /* ── 2D pitch + pressure bar ────────────────────────────── */
+    .pitch-wrap { padding: 12px 20px 6px; border-bottom: 1px solid var(--line); }
+    #watch-pitch {
+      display: block; width: 100%; height: auto;
+      border-radius: 6px;
+      background: #2e7d46;
+    }
+    .pressure {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: 10px; align-items: center; margin-top: 10px;
+    }
+    .pr-name {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--ink-2);
+    }
+    .pr-bar {
+      position: relative; height: 14px; border-radius: 7px;
+      background: var(--line); overflow: hidden;
+    }
+    .pr-fill-home, .pr-fill-away {
+      position: absolute; top: 0; bottom: 0;
+      transition: width 0.4s ease;
+    }
+    .pr-fill-home { right: 50%; background: var(--accent); border-radius: 7px 0 0 7px; }
+    .pr-fill-away { left: 50%; background: #1e5799; border-radius: 0 7px 7px 0; }
+    .pr-mid {
+      position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+      background: rgba(0,0,0,0.25); transform: translateX(-1px);
+    }
+    .pr-caption {
+      text-align: center; font-size: 0.7rem; color: var(--ink-3);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
+    }
+    .commentary { overflow-y: auto; padding: 14px 20px; display: flex; flex-direction: column; gap: 4px; min-height: 120px; flex: 1; }
     .comm-line {
       display: grid; grid-template-columns: 34px 22px 1fr; gap: 10px; align-items: baseline;
       font-size: 0.9rem; padding: 6px 10px; border-radius: 4px;
@@ -566,6 +601,19 @@
       <button class="btn sm" id="watch-play" onclick="toggleWatchPlay()">Kick Off</button>
       <button class="btn sm ghost" id="watch-speed" onclick="cycleSpeed()">Speed 1×</button>
       <button class="btn sm ghost" id="watch-skip" onclick="skipToEnd()">Simulate to full-time</button>
+    </div>
+    <div class="pitch-wrap">
+      <canvas id="watch-pitch" width="660" height="380"></canvas>
+      <div class="pressure">
+        <span class="pr-name" id="pr-home-name"></span>
+        <div class="pr-bar">
+          <div class="pr-fill-home" id="pr-fill-home"></div>
+          <div class="pr-fill-away" id="pr-fill-away"></div>
+          <div class="pr-mid"></div>
+        </div>
+        <span class="pr-name" id="pr-away-name"></span>
+      </div>
+      <div class="pr-caption">Pressure · last 5 minutes</div>
     </div>
     <div class="commentary" id="watch-feed"></div>
   </div>
@@ -1045,6 +1093,10 @@
     const playBtn = document.getElementById('watch-play');
     playBtn.textContent = 'Kick Off';
     playBtn.disabled = false;
+    document.getElementById('pr-home-name').textContent = m.home;
+    document.getElementById('pr-away-name').textContent = m.away;
+    updatePressure(0);
+    initPitch(m);
     document.getElementById('watch-overlay').classList.add('open');
   }
 
@@ -1071,6 +1123,7 @@
     }
     watch.min++;
     setMinute(watch.min);
+    updatePressure(watch.min);
     // reveal every event landing on this minute
     while (watch.idx < watch.events.length && watch.events[watch.idx].min <= watch.min) {
       showEvent();
@@ -1090,6 +1143,7 @@
     watch.playing = false;
     clearTimeout(watch.timer);
     setMinute(watch.lastMin);
+    updatePressure(watch.lastMin);
     document.getElementById('watch-min').classList.add('ft');
     const playBtn = document.getElementById('watch-play');
     playBtn.textContent = 'Full Time';
@@ -1115,6 +1169,163 @@
       `<span>${escHtml(ev.text)}</span>`;
     feed.appendChild(line);
     feed.scrollTop = feed.scrollHeight;
+    pitchOnEvent(ev);
+  }
+
+  // ── Pressure bar (last 5 minutes of momentum) ───────────────
+  function updatePressure(min) {
+    const mom = watch && watch.match.momentum;
+    let avg = 0;
+    if (mom && mom.length && min > 0) {
+      const from = Math.max(0, min - 5);
+      const slice = mom.slice(from, Math.min(min, mom.length));
+      if (slice.length) avg = slice.reduce((a, b) => a + b, 0) / slice.length;
+    }
+    // avg range -100..100 → each side's fill 0..50% of the bar
+    const homePct = Math.max(0, Math.min(50, avg / 2));
+    const awayPct = Math.max(0, Math.min(50, -avg / 2));
+    document.getElementById('pr-fill-home').style.width = homePct + '%';
+    document.getElementById('pr-fill-away').style.width = awayPct + '%';
+  }
+
+  // ── 2D pitch view (FM-style abstraction) ────────────────────
+  // Not a physics sim: players drift around formation anchors shifted by
+  // momentum, and the ball chases targets set by momentum + events.
+  const FORM_442 = [            // normalized, home attacking left → right
+    [0.045, 0.50],              // GK
+    [0.17, 0.16], [0.15, 0.38], [0.15, 0.62], [0.17, 0.84],  // defence
+    [0.36, 0.14], [0.34, 0.38], [0.34, 0.62], [0.36, 0.86],  // midfield
+    [0.56, 0.34], [0.56, 0.66]                                // strikers
+  ];
+  function teamPitchColors(homeName, awayName) {
+    const pick = n => (window.TEAM_COLORS && window.TEAM_COLORS[n] && window.TEAM_COLORS[n][0]) || crestData(n).bg;
+    let hc = pick(homeName), ac = pick(awayName);
+    // if kits clash, away plays in their second colour (or white)
+    if (typeof hc === 'string' && typeof ac === 'string' && hc.toLowerCase() === ac.toLowerCase()) {
+      const alt = window.TEAM_COLORS[awayName] && window.TEAM_COLORS[awayName][1];
+      ac = (alt && alt.toLowerCase() !== hc.toLowerCase()) ? alt : '#f5f5f5';
+    }
+    return { hc, ac };
+  }
+  let pitchRaf = null;
+  function initPitch(m) {
+    stopPitch();
+    const cv = document.getElementById('watch-pitch');
+    const ctx = cv.getContext('2d');
+    const { hc, ac } = teamPitchColors(m.home, m.away);
+    const players = [];
+    for (const [x, y] of FORM_442) players.push({ side: 'H', ax: x, ay: y, x, y, px: Math.random() * 6.28 });
+    for (const [x, y] of FORM_442) players.push({ side: 'A', ax: 1 - x, ay: 1 - y, x: 1 - x, y: 1 - y, px: Math.random() * 6.28 });
+    watch.pitch = {
+      cv, ctx, players, hc, ac,
+      ball: { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 },
+      flash: 0, t: 0
+    };
+    pitchLoop();
+  }
+  function pitchOnEvent(ev) {
+    if (!watch || !watch.pitch || !ev.side) return;
+    const p = watch.pitch;
+    const homeSide = ev.side === 'Home';   // home attacks the RIGHT goal
+    const gx = homeSide ? 0.97 : 0.03;     // attacked goal mouth x
+    const boxX = homeSide ? 0.86 : 0.14;
+    const r = () => 0.5 + (Math.random() - 0.5) * 0.5;
+    switch (ev.type) {
+      case 'GOAL':    p.ball.tx = gx; p.ball.ty = 0.5; p.flash = 24; break;
+      case 'PENALTY': p.ball.tx = homeSide ? 0.885 : 0.115; p.ball.ty = 0.5; break;
+      case 'PENMISS': p.ball.tx = gx; p.ball.ty = Math.random() < 0.5 ? 0.30 : 0.70; break;
+      case 'CORNER':  p.ball.tx = homeSide ? 0.985 : 0.015; p.ball.ty = Math.random() < 0.5 ? 0.03 : 0.97; break;
+      case 'SAVE': case 'POST': p.ball.tx = gx; p.ball.ty = r(); break;
+      case 'MISS': case 'OFFSIDE': p.ball.tx = boxX; p.ball.ty = r(); break;
+      case 'FREEKICK': p.ball.tx = homeSide ? 0.74 : 0.26; p.ball.ty = r(); break;
+      case 'YELLOW': case 'RED': case 'TACKLE': p.ball.tx = homeSide ? 0.62 : 0.38; p.ball.ty = r(); break;
+      default: /* INFO, SUB, INJURY… */ p.ball.tx = homeSide ? 0.58 : 0.42; p.ball.ty = r();
+    }
+  }
+  function pitchLoop() {
+    const p = watch && watch.pitch;
+    if (!p) return;
+    p.t += 0.03;
+    const mom = (watch.match.momentum && watch.min > 0)
+      ? (watch.match.momentum[Math.min(watch.min, watch.match.momentum.length) - 1] || 0) : 0;
+    const shift = (mom / 100) * 0.10;    // whole match tilts with momentum
+
+    // between events, the ball drifts with momentum
+    if (watch.playing && Math.random() < 0.02) {
+      p.ball.tx = 0.5 + shift * 3 + (Math.random() - 0.5) * 0.3;
+      p.ball.ty = 0.2 + Math.random() * 0.6;
+    }
+    p.ball.x += (p.ball.tx - p.ball.x) * 0.08;
+    p.ball.y += (p.ball.ty - p.ball.y) * 0.08;
+
+    for (const pl of p.players) {
+      // anchors shift with momentum; each player also wanders a little
+      const tx = pl.ax + shift + Math.sin(p.t + pl.px) * 0.012
+               + (p.ball.x - pl.ax) * 0.06;   // slight pull toward the ball
+      const ty = pl.ay + Math.cos(p.t * 0.8 + pl.px) * 0.015
+               + (p.ball.y - pl.ay) * 0.05;
+      pl.x += (tx - pl.x) * 0.05;
+      pl.y += (ty - pl.y) * 0.05;
+    }
+    drawPitch(p);
+    pitchRaf = requestAnimationFrame(pitchLoop);
+  }
+  function drawPitch(p) {
+    const { ctx, cv } = p;
+    const W = cv.width, H = cv.height;
+    // grass with mowing stripes
+    ctx.fillStyle = '#2e7d46';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.045)';
+    for (let i = 0; i < 10; i += 2) ctx.fillRect(i * W / 10, 0, W / 10, H);
+    // lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = 2;
+    const mx = 24, my = 20;                       // margins
+    const fw = W - mx * 2, fh = H - my * 2;
+    ctx.strokeRect(mx, my, fw, fh);
+    ctx.beginPath(); ctx.moveTo(W / 2, my); ctx.lineTo(W / 2, H - my); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, fh * 0.16, 0, 6.29); ctx.stroke();
+    // penalty boxes + goals
+    const boxW = fw * 0.135, boxH = fh * 0.55, gW = 6, gH = fh * 0.18;
+    ctx.strokeRect(mx, H / 2 - boxH / 2, boxW, boxH);
+    ctx.strokeRect(W - mx - boxW, H / 2 - boxH / 2, boxW, boxH);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillRect(mx - gW, H / 2 - gH / 2, gW, gH);
+    ctx.fillRect(W - mx, H / 2 - gH / 2, gW, gH);
+    // players
+    const px = v => mx + v * fw, py = v => my + v * fh;
+    for (const pl of p.players) {
+      ctx.beginPath();
+      ctx.arc(px(pl.x), py(pl.y), 7, 0, 6.29);
+      ctx.fillStyle = pl.side === 'H' ? p.hc : p.ac;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+      ctx.stroke();
+    }
+    // ball
+    ctx.beginPath();
+    ctx.arc(px(p.ball.x), py(p.ball.y), 4.5, 0, 6.29);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#222';
+    ctx.stroke();
+    // goal flash
+    if (p.flash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${p.flash / 60})`;
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fff';
+      ctx.font = "700 42px 'Barlow Condensed', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('GOAL!', W / 2, H / 2 + 14);
+      p.flash--;
+      if (p.flash === 0) { p.ball.tx = 0.5; p.ball.ty = 0.5; }  // back to kickoff
+    }
+  }
+  function stopPitch() {
+    if (pitchRaf) { cancelAnimationFrame(pitchRaf); pitchRaf = null; }
   }
 
   function cycleSpeed() {
@@ -1141,6 +1352,7 @@
       watch.min = watch.lastMin;
       onMatchFinished();
     }
+    stopPitch();
     watch = null;
     document.getElementById('watch-overlay').classList.remove('open');
   }

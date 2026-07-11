@@ -21,6 +21,10 @@ public class Match {
     String winner = null;  // null means draw
     HashMap<String, Team> teams = new HashMap<String, Team>();
     List<MatchEvent> events = new ArrayList<MatchEvent>();
+    // Per-minute momentum, index = minute-1. Range -100..100, positive = HOME
+    // pressure, negative = AWAY pressure. Used for the FM-style pressure bar
+    // and the 2D pitch view.
+    List<Integer> momentum = new ArrayList<Integer>();
 
     private static final String[] GOAL_LINES = {
             "GOOOAL! %s find the back of the net!",
@@ -118,6 +122,10 @@ public class Match {
         return events;
     }
 
+    public List<Integer> getMomentum() {
+        return momentum;
+    }
+
     public void playMatch() {
         playMatch(true);
     }
@@ -179,7 +187,18 @@ public class Match {
 
         addEvent(1, "KICKOFF", null, "The referee blows the whistle — %s!", "we are underway");
 
+        // Momentum: smoothed random walk biased toward the stronger attack,
+        // spiked by events (goals, chances, corners...). Positive = home pressure.
+        double mom = 0;
+
         for (int minute = 1; minute <= totalMinutes; minute++) {
+
+            // drift toward the natural balance of strength + some noise
+            double bias = 60.0 * (homeAtt - awayAtt) / (homeAtt + awayAtt);
+            mom = mom * 0.80 + bias * 0.20 + (Math.random() * 2 - 1) * 26;
+            if (mom > 100) mom = 100;
+            if (mom < -100) mom = -100;
+            momentum.add((int) Math.round(mom));
 
             if (minute == 46) {
                 addEvent(45, "HALFTIME", null,
@@ -194,6 +213,11 @@ public class Match {
 
             // Who has the ball? Weighted by attack strength.
             boolean homeAttacks = Math.random() < (homeAtt / (homeAtt + awayAtt));
+            // an attacking moment swings momentum toward that side
+            mom += homeAttacks ? 22 : -22;
+            if (mom > 100) mom = 100;
+            if (mom < -100) mom = -100;
+            momentum.set(momentum.size() - 1, (int) Math.round(mom));
             String side = homeAttacks ? "Home" : "Away";
             String defSide = homeAttacks ? "Away" : "Home";
             Team attacker = homeAttacks ? home : away;
