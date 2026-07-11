@@ -37,7 +37,7 @@ app.post('/api/simulate', (req, res) => {
   execFile(
     'java',
     ['-cp', CLASS_PATH, 'com.tournaments.Main', league, '--json'],
-    { cwd: ROOT, timeout: 30000 },
+    { cwd: ROOT, timeout: 30000, maxBuffer: 64 * 1024 * 1024 },
     (err, stdout, stderr) => {
       if (err) {
         console.error('Java error:', stderr);
