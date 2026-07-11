@@ -1,20 +1,20 @@
-West Ha,47,53
-Cardiff,50,40
-Leeds,44,56
-Crystal,54,46
-Sheffie,44,36
+West Ham United,47,53
+Cardiff City,50,40
+Leeds United,44,56
+Crystal Palace,54,46
+Sheffield Wednesday,44,36
 Reading,46,34
-Norwich,58,42
-Newcast,50,50
-Derby C,27,43
-Notting,30,40
-Middles,30,30
-Swansea,32,28
-Stoke C,35,45
-Hull Ci,26,24
-Birming,25,15
-Millwal,17,23
-Wigan,26,14
-Preston,7,23
-Charlto,15,15
-Brighto,23,7
+Norwich City,58,42
+Newcastle United,50,50
+Derby County,27,43
+Nottingham Forest,30,40
+Middlesbrough,30,30
+Swansea City,32,28
+Stoke City,35,45
+Hull City,26,24
+Birmingham City,25,15
+Millwall,17,23
+Wigan Athletic,26,14
+Preston North End,7,23
+Charlton Athletic,15,15
+Brighton,23,7

@@ -1,16 +1,16 @@
 Porto,64,66
 Benfica,65,65
-Setubal,57,43
-Sportin,48,52
-Vitoria,31,39
+Vitória de Setúbal,57,43
+Sporting CP,48,52
+Vitória de Guimarães,31,39
 Rio Ave,42,28
-Belenen,29,31
-Maritim,42,28
-Varge M,35,25
-Pacos F,28,32
+Belenenses,29,31
+Marítimo,42,28
+Varge Mendes,35,25
+Paços de Ferreira,28,32
 Braga,30,40
-Gil Vic,20,30
-Aves,20,10
-Boavist,28,22
-Moreire,25,15
-Portimo,20,10
+Gil Vicente,20,30
+Desportivo das Aves,20,10
+Boavista,28,22
+Moreirense,25,15
+Portimonense,20,10

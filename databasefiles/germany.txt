@@ -1,18 +1,18 @@
-Dortmun,100,89
-Hertha ,65,75
-1860 Mu,74,76
-Bayern ,94,96
-Hannove,49,61
-Hoffenh,52,48
-Frankfu,52,68
-Wolfsbu,49,51
-Koln,44,46
-Stuttga,42,58
-Hamburg,44,56
-Freibur,33,47
-Dusseld,34,36
-Schalke,29,41
-Augsbur,28,42
-Nurnber,37,33
-Dynamo ,24,36
-Mainz,43,27
+Borussia Dortmund,100,89
+Hertha Berlin,65,75
+1860 Munich,74,76
+Bayern Munich,94,96
+Hannover 96,49,61
+Hoffenheim,52,48
+Eintracht Frankfurt,52,68
+Wolfsburg,49,51
+FC Köln,44,46
+Stuttgart,42,58
+Hamburger SV,44,56
+Freiburg,33,47
+Fortuna Düsseldorf,34,36
+Schalke 04,29,41
+Augsburg,28,42
+Nürnberg,37,33
+Dynamo Dresden,24,36
+Mainz 05,43,27

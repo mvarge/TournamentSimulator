@@ -1,20 +1,20 @@
-Atalant,50,50
+Atalanta,50,50
 Parma,32,48
 Udinese,37,43
 Venezia,40,30
 Como,37,33
 Siena,35,35
-Juve St,21,29
+Juve Stabia,21,29
 Lecce,23,27
 Brescia,27,23
-Reggian,20,30
+Reggiana,20,30
 Carpi,14,26
 Ascoli,24,16
 Pescara,15,25
 Livorno,18,12
-Frosino,18,12
+Frosinone,18,12
 Spezia,15,15
 SPAL,8,22
 Crotone,21,9
 Perugia,10,20
-Cittade,19,11
+Cittadella,19,11

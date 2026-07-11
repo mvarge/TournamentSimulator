@@ -1,20 +1,20 @@
-Mallorc,43,47
-Sportin,52,38
-Real Mu,49,41
-Celta V,56,44
-Malaga,41,49
-Racing ,40,40
-Cadiz,31,39
-Real So,49,51
-Tenerif,30,30
-Oviedo,40,30
+Mallorca,43,47
+Sporting Gijón,52,38
+Real Murcia,49,41
+Celta Vigo,56,44
+Málaga,41,49
+Racing Santander,40,40
+Cádiz,31,39
+Real Sociedad,49,51
+Tenerife,30,30
+Real Oviedo,40,30
 Elche,29,21
-Albacet,28,22
-Almeria,19,21
-Las Pal,21,29
-Hercule,33,17
-Gimnast,32,18
+Albacete,28,22
+Almería,19,21
+Las Palmas,21,29
+Hércules,33,17
+Gimnàstic,32,18
 Girona,9,21
-Leganes,8,22
-Alaves,10,20
-Ponteve,11,19
+Leganés,8,22
+Alavés,10,20
+Pontevedra,11,19

@@ -1,20 +1,20 @@
-Southam,60,70
+Southampton,60,70
 Chelsea,82,98
-Bolton,80,80
+Bolton Wanderers,80,80
 Arsenal,79,81
-Wolverh,54,56
-Liverpo,91,99
-Leicest,55,65
-Aston V,44,56
-Man Cit,95,85
-QPR   ,38,52
-Man Utd,52,68
-Tottenh,49,61
-Sunderl,63,67
-West Br,39,41
+Wolverhampton,54,56
+Liverpool,91,99
+Leicester City,55,65
+Aston Villa,44,56
+Manchester City,95,85
+Queens Park Rangers,38,52
+Manchester United,52,68
+Tottenham Hotspur,49,61
+Sunderland,63,67
+West Bromwich Albion,39,41
 Burnley,48,32
 Watford,32,48
 Everton,33,37
 Reading,40,30
-Sheffie,34,36
-Notting,41,29
+Sheffield United,34,36
+Nottingham Forest,41,29

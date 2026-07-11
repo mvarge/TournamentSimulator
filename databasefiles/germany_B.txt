@@ -1,18 +1,18 @@
-Dynamo ,19,31
-Mainz,37,43
-Arminia,24,26
-Aue   ,17,23
-Fortuna,31,19
-St Paul,24,16
-Braunsc,20,20
-Nurnber,44,46
-Greuthe,32,28
-Kaisers,38,52
+Dynamo Dresden,19,31
+Mainz 05,37,43
+Arminia Bielefeld,24,26
+Erzgebirge Aue,17,23
+Fortuna Düsseldorf,31,19
+St. Pauli,24,16
+Braunschweig,20,20
+Nürnberg,44,46
+Greuther Fürth,32,28
+Kaiserslautern,38,52
 Bochum,29,31
-Holstei,13,27
-Osnabru,22,18
-Karlsru,29,21
-Paderbo,15,15
-Darmsta,9,21
-Heidenh,13,17
-Jahn Re,17,13
+Holstein Kiel,13,27
+Osnabrück,22,18
+Karlsruher SC,29,21
+Paderborn,15,15
+Darmstadt 98,9,21
+Heidenheim,13,17
+Jahn Regensburg,17,13

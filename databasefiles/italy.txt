@@ -1,20 +1,20 @@
-Sassuol,72,78
-Fiorent,83,67
+Sassuolo,72,78
+Fiorentina,83,67
 Napoli,75,85
-Juventu,91,89
+Juventus,91,89
 Torino,73,57
 Roma,63,67
 Catania,56,64
 Palermo,58,52
 Bologna,47,53
 Lazio,58,42
-Sampdor,42,58
-Milan,57,53
+Sampdoria,42,58
+AC Milan,57,53
 Genoa,47,33
-Hellas ,32,48
-Cagliar,30,40
+Hellas Verona,32,48
+Cagliari,30,40
 Chievo,38,32
-Interna,46,44
-Atalant,39,41
+Inter Milan,46,44
+Atalanta,39,41
 Udinese,28,42
 Parma,34,36

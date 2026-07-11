@@ -1,18 +1,18 @@
-PSV   ,59,71
-Sparta,44,56
-NAC Bre,57,43
+PSV Eindhoven,59,71
+Sparta Rotterdam,44,56
+NAC Breda,57,43
 Ajax,54,66
-AZ Alkm,46,54
-Feyenoo,41,49
+AZ Alkmaar,46,54
+Feyenoord,41,49
 Vitesse,42,28
-Den Haa,32,38
+Den Haag,32,38
 Twente,45,45
-Heerenv,38,22
-NEC Jim,30,20
+Heerenveen,38,22
+NEC Nijmegen,30,20
 Emmen,28,32
 Utrecht,28,32
-Willem ,26,24
-Fortuna,29,21
-Zwolle,28,22
-Heracle,31,19
-VVV Ven,33,17
+Willem II,26,24
+Fortuna Sittard,29,21
+PEC Zwolle,28,22
+Heracles,31,19
+VVV-Venlo,33,17
