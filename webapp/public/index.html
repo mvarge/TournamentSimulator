@@ -1068,18 +1068,28 @@
   };
   let watch = null;
   const SPEEDS = [1, 2, 4];
+  const TPM = 4;                 // track ticks per minute (matches Java TICKS_PER_MIN)
+  const TICKS_PER_SEC = 8;       // playback rate at 1× (≈2 match-minutes per second)
+
+  function trackAt(m, i) {       // i = tick index → {x,y,p} normalized
+    const t = m.track;
+    const j = Math.max(0, Math.min(t.length / 3 - 1, i)) * 3;
+    return { x: t[j] / 100, y: t[j + 1] / 100, p: t[j + 2] };
+  }
 
   function openWatch(roundIdx, matchIdx, live) {
     const m = simData.rounds[roundIdx].matches[matchIdx];
     if (!m.events || !m.events.length) return;
 
-    // final minute to run the clock to (last event, min 90)
-    const lastMin = Math.max(90, ...m.events.map(e => e.min));
+    const trackMin = m.track ? Math.floor(m.track.length / 3 / TPM) : 90;
+    const lastMin = Math.max(trackMin, ...m.events.map(e => e.min));
 
     watch = { rIdx: roundIdx, mIdx: matchIdx, live: !!live,
-              match: m, events: m.events, idx: 0, timer: null,
+              match: m, events: m.events, idx: 0,
               speedIdx: 0, hg: 0, ag: 0,
-              min: 0, lastMin, playing: false, finished: false };
+              tickPos: 0, min: 0, lastMin,
+              playing: false, finished: false,
+              replay: null, lastTs: null };
 
     document.getElementById('watch-home-name').textContent = m.home;
     document.getElementById('watch-away-name').textContent = m.away;
@@ -1103,33 +1113,47 @@
   // Play / pause toggle. First press = kick off.
   function toggleWatchPlay() {
     if (!watch || watch.finished) return;
-    if (watch.playing) {
-      watch.playing = false;
-      clearTimeout(watch.timer);
-      document.getElementById('watch-play').textContent = 'Resume';
-    } else {
-      watch.playing = true;
-      document.getElementById('watch-play').textContent = 'Pause';
-      tick();
-    }
+    watch.playing = !watch.playing;
+    watch.lastTs = null;
+    document.getElementById('watch-play').textContent = watch.playing ? 'Pause' : 'Resume';
   }
 
-  // Advance the clock one minute at a time; fire any events for that minute.
-  function tick() {
-    if (!watch || !watch.playing) return;
-    if (watch.min >= watch.lastMin && watch.idx >= watch.events.length) {
-      onMatchFinished();
+  // Called from the render loop each frame while playing.
+  function advancePlayback(dt) {
+    const w = watch;
+    const totalTicks = w.match.track ? w.match.track.length / 3 : w.lastMin * TPM;
+
+    // Goal replay: slow-motion rerun of the last few ticks
+    if (w.replay) {
+      w.replay.pos += dt * TICKS_PER_SEC * 0.30;    // slow-mo
+      if (w.replay.pos >= w.replay.end) {
+        if (w.pitch) w.pitch.flash = 26;            // GOAL! flash after replay
+        w.replay = null;
+      }
       return;
     }
-    watch.min++;
-    setMinute(watch.min);
-    updatePressure(watch.min);
-    // reveal every event landing on this minute
-    while (watch.idx < watch.events.length && watch.events[watch.idx].min <= watch.min) {
-      showEvent();
+
+    w.tickPos = Math.min(w.tickPos + dt * TICKS_PER_SEC * SPEEDS[w.speedIdx], totalTicks);
+
+    // Minute boundary: update clock, pressure, fire events
+    const newMin = Math.min(Math.floor(w.tickPos / TPM), w.lastMin);
+    while (w.min < newMin) {
+      w.min++;
+      setMinute(w.min);
+      updatePressure(w.min);
+      while (w.idx < w.events.length && w.events[w.idx].min <= w.min) {
+        const ev = w.events[w.idx];
+        showEvent();
+        if (ev.type === 'GOAL' && w.match.track) {
+          // replay from ~2.5 min before the net tick of this minute
+          const netTick = (w.min - 1) * TPM + 2;
+          w.replay = { pos: Math.max(0, netTick - 10), end: netTick + 0.99 };
+          return;                                    // pause the live clock during replay
+        }
+      }
     }
-    const delay = 260 / SPEEDS[watch.speedIdx];
-    watch.timer = setTimeout(tick, delay);
+
+    if (w.tickPos >= totalTicks && w.idx >= w.events.length) onMatchFinished();
   }
 
   function setMinute(min) {
@@ -1141,7 +1165,7 @@
     if (!watch || watch.finished) return;
     watch.finished = true;
     watch.playing = false;
-    clearTimeout(watch.timer);
+    watch.replay = null;
     setMinute(watch.lastMin);
     updatePressure(watch.lastMin);
     document.getElementById('watch-min').classList.add('ft');
@@ -1169,7 +1193,6 @@
       `<span>${escHtml(ev.text)}</span>`;
     feed.appendChild(line);
     feed.scrollTop = feed.scrollHeight;
-    pitchOnEvent(ev);
   }
 
   // ── Pressure bar (last 5 minutes of momentum) ───────────────
@@ -1188,9 +1211,7 @@
     document.getElementById('pr-fill-away').style.width = awayPct + '%';
   }
 
-  // ── 2D pitch view (FM-style abstraction) ────────────────────
-  // Not a physics sim: players drift around formation anchors shifted by
-  // momentum, and the ball chases targets set by momentum + events.
+  // ── 2D pitch view driven by the engine's ball track ─────────
   const FORM_442 = [            // normalized, home attacking left → right
     [0.045, 0.50],              // GK
     [0.17, 0.16], [0.15, 0.38], [0.15, 0.62], [0.17, 0.84],  // defence
@@ -1218,59 +1239,60 @@
     for (const [x, y] of FORM_442) players.push({ side: 'A', ax: 1 - x, ay: 1 - y, x: 1 - x, y: 1 - y, px: Math.random() * 6.28 });
     watch.pitch = {
       cv, ctx, players, hc, ac,
-      ball: { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 },
+      ball: { x: 0.5, y: 0.5 },
+      poss: 0.5,                 // smoothed possession: 0 = home, 1 = away
       flash: 0, t: 0
     };
-    pitchLoop();
+    pitchLoop(performance.now());
   }
-  function pitchOnEvent(ev) {
-    if (!watch || !watch.pitch || !ev.side) return;
-    const p = watch.pitch;
-    const homeSide = ev.side === 'Home';   // home attacks the RIGHT goal
-    const gx = homeSide ? 0.97 : 0.03;     // attacked goal mouth x
-    const boxX = homeSide ? 0.86 : 0.14;
-    const r = () => 0.5 + (Math.random() - 0.5) * 0.5;
-    switch (ev.type) {
-      case 'GOAL':    p.ball.tx = gx; p.ball.ty = 0.5; p.flash = 24; break;
-      case 'PENALTY': p.ball.tx = homeSide ? 0.885 : 0.115; p.ball.ty = 0.5; break;
-      case 'PENMISS': p.ball.tx = gx; p.ball.ty = Math.random() < 0.5 ? 0.30 : 0.70; break;
-      case 'CORNER':  p.ball.tx = homeSide ? 0.985 : 0.015; p.ball.ty = Math.random() < 0.5 ? 0.03 : 0.97; break;
-      case 'SAVE': case 'POST': p.ball.tx = gx; p.ball.ty = r(); break;
-      case 'MISS': case 'OFFSIDE': p.ball.tx = boxX; p.ball.ty = r(); break;
-      case 'FREEKICK': p.ball.tx = homeSide ? 0.74 : 0.26; p.ball.ty = r(); break;
-      case 'YELLOW': case 'RED': case 'TACKLE': p.ball.tx = homeSide ? 0.62 : 0.38; p.ball.ty = r(); break;
-      default: /* INFO, SUB, INJURY… */ p.ball.tx = homeSide ? 0.58 : 0.42; p.ball.ty = r();
-    }
-  }
-  function pitchLoop() {
-    const p = watch && watch.pitch;
+
+  function pitchLoop(ts) {
+    const w = watch, p = w && w.pitch;
     if (!p) return;
-    p.t += 0.03;
-    const mom = (watch.match.momentum && watch.min > 0)
-      ? (watch.match.momentum[Math.min(watch.min, watch.match.momentum.length) - 1] || 0) : 0;
-    const shift = (mom / 100) * 0.10;    // whole match tilts with momentum
+    const dt = Math.min(0.05, w.lastTs ? (ts - w.lastTs) / 1000 : 0.016);
+    w.lastTs = ts;
+    p.t += dt * 1.8;
 
-    // between events, the ball drifts with momentum
-    if (watch.playing && Math.random() < 0.02) {
-      p.ball.tx = 0.5 + shift * 3 + (Math.random() - 0.5) * 0.3;
-      p.ball.ty = 0.2 + Math.random() * 0.6;
+    if (w.playing && !w.finished) advancePlayback(dt);
+
+    // Ball follows the engine track (interpolated between ticks)
+    if (w.match.track && w.match.track.length) {
+      const pos = w.replay ? w.replay.pos : w.tickPos;
+      const i = Math.floor(pos), f = pos - i;
+      const a = trackAt(w.match, i), b = trackAt(w.match, i + 1);
+      // during a goal-reset the ball jumps to the centre; don't interpolate through it
+      const jump = Math.hypot(b.x - a.x, b.y - a.y) > 0.45;
+      const tx = jump ? a.x : a.x + (b.x - a.x) * f;
+      const ty = jump ? a.y : a.y + (b.y - a.y) * f;
+      // replays snap faster so slow-mo still tracks closely
+      const k = w.replay ? 0.5 : 0.22;
+      p.ball.x += (tx - p.ball.x) * k;
+      p.ball.y += (ty - p.ball.y) * k;
+      p.poss += ((f < 0.5 ? a.p : b.p) - p.poss) * 0.06;
     }
-    p.ball.x += (p.ball.tx - p.ball.x) * 0.08;
-    p.ball.y += (p.ball.ty - p.ball.y) * 0.08;
 
+    // Players: formation shape leans with possession + follows the ball
+    const push = (0.5 - p.poss) * 0.14;   // home possession pushes home line up (+x)
+    const ballPullX = (p.ball.x - 0.5) * 0.18;
     for (const pl of p.players) {
-      // anchors shift with momentum; each player also wanders a little
-      const tx = pl.ax + shift + Math.sin(p.t + pl.px) * 0.012
-               + (p.ball.x - pl.ax) * 0.06;   // slight pull toward the ball
-      const ty = pl.ay + Math.cos(p.t * 0.8 + pl.px) * 0.015
-               + (p.ball.y - pl.ay) * 0.05;
-      pl.x += (tx - pl.x) * 0.05;
-      pl.y += (ty - pl.y) * 0.05;
+      const fwd = pl.side === 'H' ? push : -push;
+      let tx = pl.ax + fwd + ballPullX + Math.sin(p.t + pl.px) * 0.012;
+      let ty = pl.ay + (p.ball.y - 0.5) * 0.22 * (0.4 + 0.6 * Math.abs(pl.ay - 0.5) * 2)
+             + Math.cos(p.t * 0.8 + pl.px) * 0.014;
+      // nearest-man behaviour: players close to the ball close it down
+      const dx = p.ball.x - pl.x, dy = p.ball.y - pl.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 0.02) { tx = pl.x + dx * 0.55; ty = pl.y + dy * 0.55; }
+      // GKs stay home
+      if (pl.ax === 0.045 || pl.ax === 0.955) { tx = pl.ax; ty = 0.5 + (p.ball.y - 0.5) * 0.25; }
+      pl.x += (tx - pl.x) * (w.replay ? 0.10 : 0.06);
+      pl.y += (ty - pl.y) * (w.replay ? 0.10 : 0.06);
     }
-    drawPitch(p);
+    drawPitch(p, !!w.replay);
     pitchRaf = requestAnimationFrame(pitchLoop);
   }
-  function drawPitch(p) {
+
+  function drawPitch(p, replaying) {
     const { ctx, cv } = p;
     const W = cv.width, H = cv.height;
     // grass with mowing stripes
@@ -1312,6 +1334,15 @@
     ctx.lineWidth = 1;
     ctx.strokeStyle = '#222';
     ctx.stroke();
+    // REPLAY banner
+    if (replaying) {
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(W / 2 - 80, 8, 160, 30);
+      ctx.fillStyle = '#fff';
+      ctx.font = "700 20px 'Barlow Condensed', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('◉ REPLAY', W / 2, 30);
+    }
     // goal flash
     if (p.flash > 0) {
       ctx.fillStyle = `rgba(255,255,255,${p.flash / 60})`;
@@ -1321,7 +1352,6 @@
       ctx.textAlign = 'center';
       ctx.fillText('GOAL!', W / 2, H / 2 + 14);
       p.flash--;
-      if (p.flash === 0) { p.ball.tx = 0.5; p.ball.ty = 0.5; }  // back to kickoff
     }
   }
   function stopPitch() {
@@ -1336,16 +1366,16 @@
 
   function skipToEnd() {
     if (!watch) return;
-    clearTimeout(watch.timer);
     watch.playing = false;
+    watch.replay = null;
     while (watch.idx < watch.events.length) showEvent();
     watch.min = watch.lastMin;
+    if (watch.match.track) watch.tickPos = watch.match.track.length / 3;
     onMatchFinished();
   }
 
   function closeWatch() {
     if (!watch) return;
-    clearTimeout(watch.timer);
     // committing a live match must still happen even if closed early
     if (watch.live) {
       while (watch.idx < watch.events.length) showEvent();

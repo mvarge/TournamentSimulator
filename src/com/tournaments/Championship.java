@@ -117,6 +117,7 @@ public class Championship {
                     result.put("winner", m.winner != null ? m.winner.trim() : null);
                     result.put("events", m.getEvents());
                     result.put("momentum", m.getMomentum());
+                    result.put("track", m.getTrack());
                     // Team state snapshots AFTER this match — lets the frontend
                     // rebuild standings incrementally as matches are revealed.
                     result.put("homeState", snapshot(m.teams.get("Home")));
@@ -266,6 +267,17 @@ public class Championship {
                 for (int q = 0; q < moms.size(); q++) {
                     sb.append(moms.get(q));
                     if (q < moms.size() - 1) sb.append(",");
+                }
+                sb.append("],");
+                // ball track, flattened [x,y,poss, x,y,poss, ...] with
+                // Match.TICKS_PER_MIN samples per minute (x,y = 0..100)
+                sb.append("\"track\":[");
+                @SuppressWarnings("unchecked")
+                List<int[]> tk = (List<int[]>) match.get("track");
+                for (int q = 0; q < tk.size(); q++) {
+                    int[] pt = tk.get(q);
+                    sb.append(pt[0]).append(",").append(pt[1]).append(",").append(pt[2]);
+                    if (q < tk.size() - 1) sb.append(",");
                 }
                 sb.append("],");
                 // post-match team state snapshots

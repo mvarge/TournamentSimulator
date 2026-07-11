@@ -26,6 +26,14 @@ public class Match {
     // and the 2D pitch view.
     List<Integer> momentum = new ArrayList<Integer>();
 
+    // Ball position track for the 2D pitch view: TICKS_PER_MIN entries per
+    // minute, each {x 0..100 (home attacks toward 100), y 0..100, possession
+    // 0=home 1=away}. Serialized flat as [x,y,p, x,y,p, ...].
+    public static final int TICKS_PER_MIN = 4;
+    List<int[]> track = new ArrayList<int[]>();
+    private double bx = 0.5, by = 0.5;   // live ball position (0..1)
+    private int poss = 0;                // 0 = home, 1 = away
+
     private static final String[] GOAL_LINES = {
             "GOOOAL! %s find the back of the net!",
             "GOAL! A clinical finish from %s!",
@@ -126,6 +134,53 @@ public class Match {
         return momentum;
     }
 
+    public List<int[]> getTrack() {
+        return track;
+    }
+
+    // ── Ball track helpers ──────────────────────────────────────────────
+    private void trackTick() {
+        track.add(new int[] {
+                (int) Math.round(bx * 100),
+                (int) Math.round(by * 100),
+                poss });
+    }
+
+    /** Move the ball smoothly toward (tx,ty) over the remaining ticks of this minute. */
+    private void ballTravel(double tx, double ty, int ticks) {
+        for (int i = 0; i < ticks; i++) {
+            double f = (i + 1) / (double) ticks;
+            // ease-out travel with a little lateral wobble
+            double wob = (Math.random() - 0.5) * 0.05 * (1 - f);
+            bx = bx + (tx - bx) * f;
+            by = by + (ty - by) * f + wob;
+            clampBall();
+            trackTick();
+        }
+    }
+
+    /** Aimless possession football for one minute (TICKS_PER_MIN ticks). */
+    private void ballDrift(double mom) {
+        // drift target leans toward the goal the possessing side attacks
+        double lean = (poss == 0 ? 1 : -1) * (0.10 + Math.random() * 0.12)
+                    + (mom / 100.0) * 0.06;
+        for (int i = 0; i < TICKS_PER_MIN; i++) {
+            // occasional turnover in midfield
+            if (Math.random() < 0.16) { poss = 1 - poss; lean = -lean * 0.7; }
+            bx += lean * 0.22 + (Math.random() - 0.5) * 0.10;
+            by += (Math.random() - 0.5) * 0.16 + (0.5 - by) * 0.06;
+            clampBall();
+            trackTick();
+        }
+    }
+
+    private void clampBall() {
+        if (bx < 0.02) bx = 0.02;
+        if (bx > 0.98) bx = 0.98;
+        if (by < 0.04) by = 0.04;
+        if (by > 0.96) by = 0.96;
+    }
+
     public void playMatch() {
         playMatch(true);
     }
@@ -209,7 +264,10 @@ public class Match {
             // Chance of SOMETHING happening this minute; scaled by attack quality and tempo.
             double avgAtt = (homeAtt + awayAtt) / 2.0;
             double eventP = 0.22 * (avgAtt / 75.0) * tempo;
-            if (Math.random() >= eventP) continue;
+            if (Math.random() >= eventP) {
+                ballDrift(mom);   // quiet minute: possession football
+                continue;
+            }
 
             // Who has the ball? Weighted by attack strength.
             boolean homeAttacks = Math.random() < (homeAtt / (homeAtt + awayAtt));
@@ -226,6 +284,16 @@ public class Match {
             double def = homeAttacks ? awayDef : homeDef;
             int displayMin = Math.min(minute, 90);
 
+            // Pitch geography for this attack (home attacks toward x=1)
+            poss = homeAttacks ? 0 : 1;
+            double gx  = homeAttacks ? 0.96 : 0.04;   // goal mouth
+            double bxT = homeAttacks ? 0.84 : 0.16;   // edge of the box
+            double spotX = homeAttacks ? 0.88 : 0.12; // penalty spot
+            double fkX = homeAttacks ? 0.72 : 0.28;   // free-kick range
+            double midX = homeAttacks ? 0.58 : 0.42;  // final third entry
+            double wideY = Math.random() < 0.5 ? 0.12 : 0.88;
+            double cy = 0.30 + Math.random() * 0.40;  // central-ish y
+
             // What KIND of moment is this? Not every event is a clear chance —
             // plenty of build-up, set-pieces and stoppages add texture.
             double roll = Math.random();
@@ -235,14 +303,23 @@ public class Match {
                 double f = Math.random();
                 if (f < 0.40) {
                     addEvent(minute, "INFO", side, pick(BUILDUP_LINES), attacker.name.trim());
+                    ballDrift(mom);
                 } else if (f < 0.62) {
                     addEvent(minute, "TACKLE", side, pick(TACKLE_LINES), attacker.name.trim());
+                    ballTravel(midX, cy, 2);              // attack builds...
+                    poss = 1 - poss;                       // ...and is snuffed out
+                    ballTravel(0.5, 0.5, 2);
                 } else if (f < 0.80) {
                     addEvent(minute, "OFFSIDE", side, pick(OFFSIDE_LINES), attacker.name.trim());
+                    ballTravel(bxT, cy, 3);                // through-ball into the box
+                    poss = 1 - poss;                       // flag up, free-kick out
+                    ballTravel(midX, 0.5, 1);
                 } else if (f < 0.92 && minute > 25) {
                     addEvent(minute, "SUB", side, pick(SUB_LINES), attacker.name.trim());
+                    ballDrift(mom);
                 } else {
                     addEvent(minute, "INJURY", side, pick(INJURY_LINES), attacker.name.trim());
+                    ballDrift(mom);
                 }
                 continue;
             }
@@ -254,35 +331,56 @@ public class Match {
                     addEvent(minute, "RED", defSide, pick(RED_LINES), defender.name.trim());
                     if (homeAttacks) { awayAtt *= 0.85; awayDef *= 0.85; }
                     else { homeAtt *= 0.85; homeDef *= 0.85; }
+                    ballTravel(midX, cy, 4);               // play stops where the foul was
                 } else if (f < 0.45) {
                     addEvent(minute, "YELLOW", defSide, pick(YELLOW_LINES), defender.name.trim());
+                    ballTravel(midX, cy, 4);
                 } else {
                     addEvent(minute, "FREEKICK", side, pick(FREEKICK_LINES), attacker.name.trim());
+                    ballTravel(fkX, cy, 2);                // set it down...
+                    ballTravel(bxT, 0.5, 2);               // ...delivery into the box
                 }
                 continue;
             }
 
             // 8%: a corner (occasionally leads straight to a chance)
+            boolean cornerChance = false;
             if (roll < 0.40) {
                 addEvent(minute, "CORNER", side, pick(CORNER_LINES), attacker.name.trim());
-                if (Math.random() > 0.45) continue;  // most corners come to nothing
-                // else fall through into the open-play chance below
+                ballTravel(gx, wideY < 0.5 ? 0.05 : 0.95, 2);   // out to the flag
+                if (Math.random() > 0.45) {
+                    poss = 1 - poss;                       // cleared away
+                    ballTravel(midX, cy, 2);
+                    continue;
+                }
+                cornerChance = true;                       // delivery creates a chance
             } else if (roll < 0.43) {
                 // 3%: a penalty
                 addEvent(minute, "PENALTY", side, pick(PENALTY_LINES), attacker.name.trim());
+                ballTravel(spotX, 0.5, 2);                 // placed on the spot
                 if (Math.random() < 0.76) {
                     attacker.goalInFavor();
                     defender.goalAgainst();
                     addEvent(displayMin, "GOAL", side,
                             pick(PEN_GOAL_LINES) + "  (" + home.getGoalsMade() + " x " + away.getGoalsMade() + ")",
                             attacker.name.trim());
+                    ballTravel(gx, 0.5, 1);                // buried
+                    poss = 1 - poss;
+                    bx = 0.5; by = 0.5; trackTick();       // back to kickoff
                 } else {
                     addEvent(displayMin, "PENMISS", side, pick(PEN_MISS_LINES), attacker.name.trim());
+                    ballTravel(gx, Math.random() < 0.5 ? 0.28 : 0.72, 1);  // wide/saved
+                    poss = 1 - poss;
+                    ballTravel(bxT, 0.5, 1);
                 }
                 continue;
             }
 
             // Otherwise: an open-play chance — attack vs defence duel (tuned ~2.6 goals/match)
+            // Every branch below emits exactly TICKS_PER_MIN ticks so the
+            // frontend can map tick index = (minute-1) * TICKS_PER_MIN.
+            int lead = cornerChance ? 0 : 2;               // corner delivery = header from the flag
+            ballTravel(bxT, cy, lead);                     // surge into the box
             double goalP = 0.62 * (att / (att + def * 2.2));
             if (Math.random() < goalP) {
                 attacker.goalInFavor();
@@ -290,14 +388,26 @@ public class Match {
                 addEvent(displayMin, "GOAL", side,
                         pick(GOAL_LINES) + "  (" + home.getGoalsMade() + " x " + away.getGoalsMade() + ")",
                         attacker.name.trim());
+                ballTravel(gx, 0.42 + Math.random() * 0.16, 1);   // in the net
+                poss = 1 - poss;
+                bx = 0.5; by = 0.5; trackTick();           // back to kickoff
             } else {
                 double outcome = Math.random();
                 if (outcome < 0.50) {
                     addEvent(displayMin, "SAVE", side, pick(SAVE_LINES), attacker.name.trim());
+                    ballTravel(gx, 0.40 + Math.random() * 0.20, 1);   // shot on target
+                    poss = 1 - poss;                       // keeper claims it
+                    ballTravel(spotX, 0.5, 1);
                 } else if (outcome < 0.85) {
                     addEvent(displayMin, "MISS", side, pick(MISS_LINES), attacker.name.trim());
+                    ballTravel(gx, Math.random() < 0.5 ? 0.16 : 0.84, 1);  // dragged wide
+                    poss = 1 - poss;
+                    ballTravel(bxT, 0.5, 1);               // goal kick out
                 } else {
                     addEvent(displayMin, "POST", side, pick(POST_LINES), attacker.name.trim());
+                    ballTravel(gx, 0.46 + Math.random() * 0.08, 1);   // clangs the frame
+                    poss = 1 - poss;
+                    ballTravel(bxT, cy, 1);                // rebounds clear
                 }
             }
         }
