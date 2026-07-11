@@ -560,8 +560,9 @@
       <button class="modal-close" onclick="closeWatch()">✕</button>
     </div>
     <div class="modal-controls">
+      <button class="btn sm" id="watch-play" onclick="toggleWatchPlay()">Kick Off</button>
       <button class="btn sm ghost" id="watch-speed" onclick="cycleSpeed()">Speed 1×</button>
-      <button class="btn sm ghost" id="watch-skip" onclick="skipToEnd()">Skip to full-time</button>
+      <button class="btn sm ghost" id="watch-skip" onclick="skipToEnd()">Simulate to full-time</button>
     </div>
     <div class="commentary" id="watch-feed"></div>
   </div>
@@ -1019,8 +1020,13 @@
     const m = simData.rounds[roundIdx].matches[matchIdx];
     if (!m.events || !m.events.length) return;
 
+    // final minute to run the clock to (last event, min 90)
+    const lastMin = Math.max(90, ...m.events.map(e => e.min));
+
     watch = { rIdx: roundIdx, mIdx: matchIdx, live: !!live,
-              match: m, events: m.events, idx: 0, timer: null, speedIdx: 0, hg: 0, ag: 0 };
+              match: m, events: m.events, idx: 0, timer: null,
+              speedIdx: 0, hg: 0, ag: 0,
+              min: 0, lastMin, playing: false, finished: false };
 
     document.getElementById('watch-home-name').textContent = m.home;
     document.getElementById('watch-away-name').textContent = m.away;
@@ -1031,21 +1037,59 @@
     minEl.textContent = "0'"; minEl.classList.remove('ft');
     document.getElementById('watch-feed').innerHTML = '';
     document.getElementById('watch-speed').textContent = 'Speed 1×';
+    const playBtn = document.getElementById('watch-play');
+    playBtn.textContent = 'Kick Off';
+    playBtn.disabled = false;
     document.getElementById('watch-overlay').classList.add('open');
-
-    scheduleNext();
   }
 
-  function scheduleNext() {
-    if (!watch) return;
-    if (watch.idx >= watch.events.length) { onMatchFinished(); return; }
-    const delay = 900 / SPEEDS[watch.speedIdx];
-    watch.timer = setTimeout(() => { showEvent(); scheduleNext(); }, delay);
+  // Play / pause toggle. First press = kick off.
+  function toggleWatchPlay() {
+    if (!watch || watch.finished) return;
+    if (watch.playing) {
+      watch.playing = false;
+      clearTimeout(watch.timer);
+      document.getElementById('watch-play').textContent = 'Resume';
+    } else {
+      watch.playing = true;
+      document.getElementById('watch-play').textContent = 'Pause';
+      tick();
+    }
+  }
+
+  // Advance the clock one minute at a time; fire any events for that minute.
+  function tick() {
+    if (!watch || !watch.playing) return;
+    if (watch.min >= watch.lastMin && watch.idx >= watch.events.length) {
+      onMatchFinished();
+      return;
+    }
+    watch.min++;
+    setMinute(watch.min);
+    // reveal every event landing on this minute
+    while (watch.idx < watch.events.length && watch.events[watch.idx].min <= watch.min) {
+      showEvent();
+    }
+    const delay = 260 / SPEEDS[watch.speedIdx];
+    watch.timer = setTimeout(tick, delay);
+  }
+
+  function setMinute(min) {
+    const label = min > 90 ? "90+" + (min - 90) + "'" : min + "'";
+    document.getElementById('watch-min').textContent = label;
   }
 
   function onMatchFinished() {
+    if (!watch || watch.finished) return;
+    watch.finished = true;
+    watch.playing = false;
+    clearTimeout(watch.timer);
+    setMinute(watch.lastMin);
     document.getElementById('watch-min').classList.add('ft');
-    if (watch && watch.live) {
+    const playBtn = document.getElementById('watch-play');
+    playBtn.textContent = 'Full Time';
+    playBtn.disabled = true;
+    if (watch.live) {
       watch.live = false;
       commitMatch(watch.rIdx, watch.mIdx);
     }
@@ -1057,12 +1101,11 @@
       if (ev.side === 'Home') watch.hg++; else watch.ag++;
       document.getElementById('watch-score').textContent = `${watch.hg}–${watch.ag}`;
     }
-    document.getElementById('watch-min').textContent = ev.min + "'";
-
     const feed = document.getElementById('watch-feed');
     const line = document.createElement('div');
     line.className = 'comm-line ev-' + ev.type;
-    line.innerHTML = `<span class="comm-min">${ev.min}'</span>` +
+    const min = ev.min > 90 ? "90+" + (ev.min - 90) + "'" : ev.min + "'";
+    line.innerHTML = `<span class="comm-min">${min}</span>` +
       `<span>${EV_ICON[ev.type] || ''}</span>` +
       `<span>${escHtml(ev.text)}</span>`;
     feed.appendChild(line);
@@ -1078,15 +1121,19 @@
   function skipToEnd() {
     if (!watch) return;
     clearTimeout(watch.timer);
+    watch.playing = false;
     while (watch.idx < watch.events.length) showEvent();
+    watch.min = watch.lastMin;
     onMatchFinished();
   }
 
   function closeWatch() {
     if (!watch) return;
     clearTimeout(watch.timer);
+    // committing a live match must still happen even if closed early
     if (watch.live) {
-      while (watch.idx < watch.events.length) watch.idx++;
+      while (watch.idx < watch.events.length) showEvent();
+      watch.min = watch.lastMin;
       onMatchFinished();
     }
     watch = null;
