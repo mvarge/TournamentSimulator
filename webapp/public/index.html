@@ -465,6 +465,9 @@
     .comm-min { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; color: var(--ink-3); font-size: 0.85rem; }
     .comm-line.ev-GOAL { background: #eaf6ef; border-left: 3px solid var(--pitch); font-weight: 500; }
     .comm-line.ev-RED { background: #fdecea; border-left: 3px solid var(--loss); }
+    .comm-line.ev-PENALTY { background: #fff4e5; border-left: 3px solid #f5920b; font-weight: 500; }
+    .comm-line.ev-PENMISS { background: #fbfaf7; border-left: 3px solid var(--ink-3); }
+    .comm-line.ev-INFO, .comm-line.ev-TACKLE, .comm-line.ev-SUB, .comm-line.ev-INJURY { color: var(--ink-3); }
     .comm-line.ev-HALFTIME, .comm-line.ev-FULLTIME {
       background: #fbfaf7; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.05em; border-left: 3px solid var(--ink-3);
@@ -1011,7 +1014,9 @@
   // ── Watch Match (FM-style replay) ───────────────────────────
   const EV_ICON = {
     GOAL: '⚽', SAVE: '🧤', MISS: '💨', POST: '🥅',
-    YELLOW: '🟨', RED: '🟥', KICKOFF: '🏁', HALFTIME: '⏱', FULLTIME: '⏱'
+    YELLOW: '🟨', RED: '🟥', KICKOFF: '🏁', HALFTIME: '⏱', FULLTIME: '⏱',
+    PENALTY: '🎯', PENMISS: '❌', CORNER: '🚩', FREEKICK: '🎯',
+    OFFSIDE: '🚫', INJURY: '🚑', SUB: '🔄', TACKLE: '🦵', INFO: '💬'
   };
   let watch = null;
   const SPEEDS = [1, 2, 4];

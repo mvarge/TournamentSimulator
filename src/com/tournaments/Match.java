@@ -56,6 +56,58 @@ public class Match {
             "RED CARD! %s are down to ten men after a horrific tackle!",
             "Straight red! A last-man foul and %s must play on a man short!"
     };
+    private static final String[] PENALTY_LINES = {
+            "PENALTY to %s! The referee points to the spot!",
+            "The defender brings him down — it's a penalty for %s!",
+            "Handball in the box! %s have a penalty!"
+    };
+    private static final String[] PEN_GOAL_LINES = {
+            "GOAL! %s make no mistake from the spot!",
+            "GOAL! Cool as you like, %s convert the penalty!",
+            "GOAL! Sent the keeper the wrong way — %s score!"
+    };
+    private static final String[] PEN_MISS_LINES = {
+            "MISSED! %s blaze the penalty over the bar!",
+            "SAVED! The keeper guesses right and denies %s from the spot!",
+            "Off the post! %s cannot believe they missed the penalty!"
+    };
+    private static final String[] CORNER_LINES = {
+            "Corner for %s — the big players go up.",
+            "%s swing in a dangerous corner...",
+            "Another corner won by %s as they pile on the pressure."
+    };
+    private static final String[] FREEKICK_LINES = {
+            "Dangerous free-kick in a good area for %s.",
+            "%s line up a free-kick on the edge of the box...",
+            "Promising set-piece opportunity for %s."
+    };
+    private static final String[] OFFSIDE_LINES = {
+            "The flag is up — %s caught offside.",
+            "%s think they've scored but it's ruled out for offside!",
+            "A fine offside trap snuffs out the %s attack."
+    };
+    private static final String[] INJURY_LINES = {
+            "A %s player goes down and needs treatment.",
+            "Play is stopped as a %s player receives attention.",
+            "Injury concern for %s as the physio comes on."
+    };
+    private static final String[] SUB_LINES = {
+            "%s make a change, fresh legs off the bench.",
+            "Tactical substitution for %s.",
+            "%s turn to their bench to shake things up."
+    };
+    private static final String[] BUILDUP_LINES = {
+            "%s knock it around patiently, probing for an opening.",
+            "Good spell of possession for %s.",
+            "%s push forward looking for a way through.",
+            "The tempo lifts as %s take control of midfield.",
+            "%s work it wide but the cross is cleared."
+    };
+    private static final String[] TACKLE_LINES = {
+            "Superb last-ditch tackle to deny %s!",
+            "Crunching challenge halts the %s attack.",
+            "%s are dispossessed by a well-timed interception."
+    };
 
     public Match(Team home, Team away) {
         teams.put("Home", home);
@@ -120,6 +172,11 @@ public class Match {
         int stoppage = 1 + (int) (Math.random() * 4);  // 90+1 .. 90+4
         int totalMinutes = 90 + stoppage;
 
+        // Match tempo: how open/entertaining THIS game is. Drawn per match so some
+        // fixtures are end-to-end thrillers and others are cagey, low-event affairs.
+        // 0.55 = dour, 1.0 = average, ~1.6 = basketball. Skewed toward the middle.
+        double tempo = 0.55 + Math.pow(Math.random(), 1.5) * 1.05;
+
         addEvent(1, "KICKOFF", null, "The referee blows the whistle — %s!", "we are underway");
 
         for (int minute = 1; minute <= totalMinutes; minute++) {
@@ -130,52 +187,93 @@ public class Match {
                         home.name.trim());
             }
 
-            // Chance of an attacking situation this minute; better attacks create more chances.
+            // Chance of SOMETHING happening this minute; scaled by attack quality and tempo.
             double avgAtt = (homeAtt + awayAtt) / 2.0;
-            double chanceP = 0.11 * (avgAtt / 75.0);
-            if (Math.random() >= chanceP) continue;
+            double eventP = 0.22 * (avgAtt / 75.0) * tempo;
+            if (Math.random() >= eventP) continue;
 
-            // Who attacks? Weighted by attack strength.
+            // Who has the ball? Weighted by attack strength.
             boolean homeAttacks = Math.random() < (homeAtt / (homeAtt + awayAtt));
             String side = homeAttacks ? "Home" : "Away";
+            String defSide = homeAttacks ? "Away" : "Home";
             Team attacker = homeAttacks ? home : away;
             Team defender = homeAttacks ? away : home;
             double att = homeAttacks ? homeAtt : awayAtt;
             double def = homeAttacks ? awayDef : homeDef;
+            int displayMin = Math.min(minute, 90);
 
-            // Occasionally the "chance" is actually a foul that produces a card
-            double flavour = Math.random();
-            if (flavour < 0.08) {
-                // Card against the DEFENDING side
-                String defSide = homeAttacks ? "Away" : "Home";
-                if (Math.random() < 0.07) {
-                    addEvent(minute, "RED", defSide, pick(RED_LINES), defender.name.trim());
-                    // Ten men: defending side loses strength for the rest of the match
-                    if (homeAttacks) { awayAtt *= 0.85; awayDef *= 0.85; }
-                    else { homeAtt *= 0.85; homeDef *= 0.85; }
+            // What KIND of moment is this? Not every event is a clear chance —
+            // plenty of build-up, set-pieces and stoppages add texture.
+            double roll = Math.random();
+
+            // 20%: non-threatening flavour (build-up, tackles, offside, injury, sub)
+            if (roll < 0.20) {
+                double f = Math.random();
+                if (f < 0.40) {
+                    addEvent(minute, "INFO", side, pick(BUILDUP_LINES), attacker.name.trim());
+                } else if (f < 0.62) {
+                    addEvent(minute, "TACKLE", side, pick(TACKLE_LINES), attacker.name.trim());
+                } else if (f < 0.80) {
+                    addEvent(minute, "OFFSIDE", side, pick(OFFSIDE_LINES), attacker.name.trim());
+                } else if (f < 0.92 && minute > 25) {
+                    addEvent(minute, "SUB", side, pick(SUB_LINES), attacker.name.trim());
                 } else {
-                    addEvent(minute, "YELLOW", defSide, pick(YELLOW_LINES), defender.name.trim());
+                    addEvent(minute, "INJURY", side, pick(INJURY_LINES), attacker.name.trim());
                 }
                 continue;
             }
 
-            // Conversion: attack vs defence duel (tuned for ~2.6 goals/match)
-            double goalP = 0.9 * (att / (att + def * 2.2));
+            // 12%: a foul — mostly free-kicks, sometimes cards against the defence
+            if (roll < 0.32) {
+                double f = Math.random();
+                if (f < 0.10) {
+                    addEvent(minute, "RED", defSide, pick(RED_LINES), defender.name.trim());
+                    if (homeAttacks) { awayAtt *= 0.85; awayDef *= 0.85; }
+                    else { homeAtt *= 0.85; homeDef *= 0.85; }
+                } else if (f < 0.45) {
+                    addEvent(minute, "YELLOW", defSide, pick(YELLOW_LINES), defender.name.trim());
+                } else {
+                    addEvent(minute, "FREEKICK", side, pick(FREEKICK_LINES), attacker.name.trim());
+                }
+                continue;
+            }
+
+            // 8%: a corner (occasionally leads straight to a chance)
+            if (roll < 0.40) {
+                addEvent(minute, "CORNER", side, pick(CORNER_LINES), attacker.name.trim());
+                if (Math.random() > 0.45) continue;  // most corners come to nothing
+                // else fall through into the open-play chance below
+            } else if (roll < 0.43) {
+                // 3%: a penalty
+                addEvent(minute, "PENALTY", side, pick(PENALTY_LINES), attacker.name.trim());
+                if (Math.random() < 0.76) {
+                    attacker.goalInFavor();
+                    defender.goalAgainst();
+                    addEvent(displayMin, "GOAL", side,
+                            pick(PEN_GOAL_LINES) + "  (" + home.getGoalsMade() + " x " + away.getGoalsMade() + ")",
+                            attacker.name.trim());
+                } else {
+                    addEvent(displayMin, "PENMISS", side, pick(PEN_MISS_LINES), attacker.name.trim());
+                }
+                continue;
+            }
+
+            // Otherwise: an open-play chance — attack vs defence duel (tuned ~2.6 goals/match)
+            double goalP = 0.62 * (att / (att + def * 2.2));
             if (Math.random() < goalP) {
                 attacker.goalInFavor();
                 defender.goalAgainst();
-                int displayMin = Math.min(minute, 90);
                 addEvent(displayMin, "GOAL", side,
                         pick(GOAL_LINES) + "  (" + home.getGoalsMade() + " x " + away.getGoalsMade() + ")",
                         attacker.name.trim());
             } else {
                 double outcome = Math.random();
                 if (outcome < 0.50) {
-                    addEvent(Math.min(minute, 90), "SAVE", side, pick(SAVE_LINES), attacker.name.trim());
+                    addEvent(displayMin, "SAVE", side, pick(SAVE_LINES), attacker.name.trim());
                 } else if (outcome < 0.85) {
-                    addEvent(Math.min(minute, 90), "MISS", side, pick(MISS_LINES), attacker.name.trim());
+                    addEvent(displayMin, "MISS", side, pick(MISS_LINES), attacker.name.trim());
                 } else {
-                    addEvent(Math.min(minute, 90), "POST", side, pick(POST_LINES), attacker.name.trim());
+                    addEvent(displayMin, "POST", side, pick(POST_LINES), attacker.name.trim());
                 }
             }
         }
