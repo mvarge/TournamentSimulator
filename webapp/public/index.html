@@ -458,7 +458,14 @@
     .modal-controls { display: flex; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--line); align-items: center; }
 
     /* ── 2D pitch + pressure bar ────────────────────────────── */
+    .pitch-toggle {
+      margin-left: auto; font-size: 0.8rem; color: var(--ink-3);
+      cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+      user-select: none;
+    }
+    .pitch-toggle:hover { color: var(--ink); }
     .pitch-wrap { padding: 12px 20px 6px; border-bottom: 1px solid var(--line); }
+    .pitch-wrap.hidden { display: none; }
     #watch-pitch {
       display: block; width: 100%; height: auto;
       border-radius: 6px;
@@ -490,6 +497,35 @@
     .pr-caption {
       text-align: center; font-size: 0.7rem; color: var(--ink-3);
       text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
+    }
+
+    /* ── Live match stats ───────────────────────────────────── */
+    .mstats {
+      padding: 10px 20px; border-bottom: 1px solid var(--line);
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .mstat {
+      display: grid; grid-template-columns: 44px 1fr 44px; gap: 10px;
+      align-items: center; font-size: 0.85rem;
+    }
+    .mstat .num {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1rem;
+    }
+    .mstat .num.home { text-align: right; }
+    .mstat .num.away { text-align: left; }
+    .mstat .label-track {
+      position: relative; height: 16px; display: flex; align-items: center; justify-content: center;
+    }
+    .mstat .bar {
+      position: absolute; inset: 6px 0; border-radius: 3px; background: var(--line); overflow: hidden;
+    }
+    .mstat .bar .bh, .mstat .bar .ba { position: absolute; top: 0; bottom: 0; transition: width 0.35s ease; }
+    .mstat .bar .bh { left: 0; background: var(--accent); opacity: 0.75; }
+    .mstat .bar .ba { right: 0; background: #1e5799; opacity: 0.75; }
+    .mstat .lbl {
+      position: relative; z-index: 1; font-size: 0.66rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2);
+      background: var(--card); padding: 0 8px; border-radius: 3px;
     }
     .commentary { overflow-y: auto; padding: 14px 20px; display: flex; flex-direction: column; gap: 4px; min-height: 120px; flex: 1; }
     .comm-line {
@@ -601,8 +637,9 @@
       <button class="btn sm" id="watch-play" onclick="toggleWatchPlay()">Kick Off</button>
       <button class="btn sm ghost" id="watch-speed" onclick="cycleSpeed()">Speed 1×</button>
       <button class="btn sm ghost" id="watch-skip" onclick="skipToEnd()">Simulate to full-time</button>
+      <a class="pitch-toggle" id="pitch-toggle" onclick="togglePitch()">Hide pitch</a>
     </div>
-    <div class="pitch-wrap">
+    <div class="pitch-wrap" id="pitch-wrap">
       <canvas id="watch-pitch" width="660" height="380"></canvas>
       <div class="pressure">
         <span class="pr-name" id="pr-home-name"></span>
@@ -615,6 +652,7 @@
       </div>
       <div class="pr-caption">Pressure · last 5 minutes</div>
     </div>
+    <div class="mstats" id="mstats"></div>
     <div class="commentary" id="watch-feed"></div>
   </div>
 </div>
@@ -1089,7 +1127,8 @@
               speedIdx: 0, hg: 0, ag: 0,
               tickPos: 0, min: 0, lastMin,
               playing: false, finished: false,
-              replay: null, lastTs: null };
+              replay: null, lastTs: null,
+              stats: newStats() };
 
     document.getElementById('watch-home-name').textContent = m.home;
     document.getElementById('watch-away-name').textContent = m.away;
@@ -1106,6 +1145,7 @@
     document.getElementById('pr-home-name').textContent = m.home;
     document.getElementById('pr-away-name').textContent = m.away;
     updatePressure(0);
+    renderStats();
     initPitch(m);
     document.getElementById('watch-overlay').classList.add('open');
   }
@@ -1141,6 +1181,7 @@
       w.min++;
       setMinute(w.min);
       updatePressure(w.min);
+      renderStats();
       while (w.idx < w.events.length && w.events[w.idx].min <= w.min) {
         const ev = w.events[w.idx];
         showEvent();
@@ -1168,6 +1209,8 @@
     watch.replay = null;
     setMinute(watch.lastMin);
     updatePressure(watch.lastMin);
+    if (watch.match.track) watch.tickPos = watch.match.track.length / 3;
+    renderStats();
     document.getElementById('watch-min').classList.add('ft');
     const playBtn = document.getElementById('watch-play');
     playBtn.textContent = 'Full Time';
@@ -1193,6 +1236,79 @@
       `<span>${escHtml(ev.text)}</span>`;
     feed.appendChild(line);
     feed.scrollTop = feed.scrollHeight;
+    bumpStats(ev);
+  }
+
+  // ── Live cumulative match stats ─────────────────────────────
+  function newStats() {
+    return {
+      shots: [0, 0], onTarget: [0, 0], corners: [0, 0],
+      yellows: [0, 0], reds: [0, 0], offsides: [0, 0], fouls: [0, 0]
+    };
+  }
+  function bumpStats(ev) {
+    if (!watch || !ev.side) return;
+    const s = watch.stats, i = ev.side === 'Home' ? 0 : 1, o = 1 - i;
+    switch (ev.type) {
+      case 'GOAL':    s.shots[i]++; s.onTarget[i]++; break;
+      case 'SAVE':    s.shots[i]++; s.onTarget[i]++; break;
+      case 'POST': case 'MISS': case 'PENMISS': s.shots[i]++; break;
+      case 'CORNER':  s.corners[i]++; break;
+      case 'OFFSIDE': s.offsides[i]++; break;
+      // cards/free-kicks are attributed to the side committing the foul;
+      // FREEKICK events carry the attacking side, so the foul is the other way
+      case 'YELLOW':  s.yellows[i]++; s.fouls[i]++; break;
+      case 'RED':     s.reds[i]++; s.fouls[i]++; break;
+      case 'FREEKICK': s.fouls[o]++; break;
+    }
+    renderStats();
+  }
+  // possession % from the engine track, up to the current playback tick
+  function possessionPct() {
+    const t = watch && watch.match.track;
+    if (!t || !t.length || watch.tickPos < 1) return [50, 50];
+    const upto = Math.min(Math.floor(watch.tickPos), t.length / 3);
+    let homeTicks = 0;
+    for (let i = 0; i < upto; i++) if (t[i * 3 + 2] === 0) homeTicks++;
+    const h = Math.round(homeTicks / upto * 100);
+    return [h, 100 - h];
+  }
+  function renderStats() {
+    if (!watch) return;
+    const s = watch.stats;
+    const [ph, pa] = possessionPct();
+    const rows = [
+      ['Possession', ph, pa, '%'],
+      ['Shots', s.shots[0], s.shots[1]],
+      ['On target', s.onTarget[0], s.onTarget[1]],
+      ['Corners', s.corners[0], s.corners[1]],
+      ['Fouls', s.fouls[0], s.fouls[1]],
+      ['Yellow cards', s.yellows[0], s.yellows[1]],
+      ['Red cards', s.reds[0], s.reds[1]],
+      ['Offsides', s.offsides[0], s.offsides[1]],
+    ];
+    document.getElementById('mstats').innerHTML = rows.map(([lbl, h, a, suffix]) => {
+      const tot = h + a;
+      const hw = tot > 0 ? (h / tot * 100) : 0;
+      const aw = tot > 0 ? (a / tot * 100) : 0;
+      const sfx = suffix || '';
+      return `<div class="mstat">
+        <span class="num home">${h}${sfx}</span>
+        <span class="label-track">
+          <span class="bar"><span class="bh" style="width:${hw}%"></span><span class="ba" style="width:${aw}%"></span></span>
+          <span class="lbl">${lbl}</span>
+        </span>
+        <span class="num away">${a}${sfx}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Pitch visibility toggle ─────────────────────────────────
+  let pitchHidden = false;
+  function togglePitch() {
+    pitchHidden = !pitchHidden;
+    document.getElementById('pitch-wrap').classList.toggle('hidden', pitchHidden);
+    document.getElementById('pitch-toggle').textContent = pitchHidden ? 'Show pitch' : 'Hide pitch';
   }
 
   // ── Pressure bar (last 5 minutes of momentum) ───────────────
@@ -1274,19 +1390,51 @@
     // Players: formation shape leans with possession + follows the ball
     const push = (0.5 - p.poss) * 0.14;   // home possession pushes home line up (+x)
     const ballPullX = (p.ball.x - 0.5) * 0.18;
+
+    // only the CLOSEST outfielder per side closes the ball down
+    let nearH = null, nearA = null, dH = Infinity, dA = Infinity;
+    for (const pl of p.players) {
+      if (pl.ax === 0.045 || pl.ax === 0.955) continue;  // not the GKs
+      const d2 = (p.ball.x - pl.x) ** 2 + (p.ball.y - pl.y) ** 2;
+      if (pl.side === 'H') { if (d2 < dH) { dH = d2; nearH = pl; } }
+      else { if (d2 < dA) { dA = d2; nearA = pl; } }
+    }
+
     for (const pl of p.players) {
       const fwd = pl.side === 'H' ? push : -push;
       let tx = pl.ax + fwd + ballPullX + Math.sin(p.t + pl.px) * 0.012;
       let ty = pl.ay + (p.ball.y - 0.5) * 0.22 * (0.4 + 0.6 * Math.abs(pl.ay - 0.5) * 2)
              + Math.cos(p.t * 0.8 + pl.px) * 0.014;
-      // nearest-man behaviour: players close to the ball close it down
-      const dx = p.ball.x - pl.x, dy = p.ball.y - pl.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < 0.02) { tx = pl.x + dx * 0.55; ty = pl.y + dy * 0.55; }
+      // pressing: only the nearest man per side hunts the ball, and he stops
+      // just short of it instead of sitting on top
+      if (pl === nearH || pl === nearA) {
+        const dx = p.ball.x - pl.x, dy = p.ball.y - pl.y;
+        const d = Math.hypot(dx, dy) || 1e-6;
+        const standOff = pl === (p.poss < 0.5 ? nearH : nearA) ? 0.012 : 0.035;
+        const reach = Math.max(0, d - standOff) / d;
+        tx = pl.x + dx * reach * 0.6;
+        ty = pl.y + dy * reach * 0.6;
+      }
       // GKs stay home
       if (pl.ax === 0.045 || pl.ax === 0.955) { tx = pl.ax; ty = 0.5 + (p.ball.y - 0.5) * 0.25; }
       pl.x += (tx - pl.x) * (w.replay ? 0.10 : 0.06);
       pl.y += (ty - pl.y) * (w.replay ? 0.10 : 0.06);
+    }
+
+    // separation pass: never let dots overlap, so everyone stays visible
+    const MIN_D = 0.032;
+    for (let a = 0; a < p.players.length; a++) {
+      for (let b = a + 1; b < p.players.length; b++) {
+        const A = p.players[a], B = p.players[b];
+        let dx = B.x - A.x, dy = B.y - A.y;
+        let d = Math.hypot(dx, dy);
+        if (d >= MIN_D) continue;
+        if (d < 1e-5) { dx = (Math.random() - 0.5); dy = (Math.random() - 0.5); d = Math.hypot(dx, dy); }
+        const pushAmt = (MIN_D - d) / 2;
+        const ux = dx / d, uy = dy / d;
+        A.x -= ux * pushAmt; A.y -= uy * pushAmt;
+        B.x += ux * pushAmt; B.y += uy * pushAmt;
+      }
     }
     drawPitch(p, !!w.replay);
     pitchRaf = requestAnimationFrame(pitchLoop);
