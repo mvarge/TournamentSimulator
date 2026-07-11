@@ -94,6 +94,35 @@
     .btn:active { transform: scale(0.97); }
     .btn:disabled { background: #2a3f50; color: var(--muted); cursor: not-allowed; }
 
+    .season-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .season-controls .btn { padding: 8px 16px; font-size: 0.85rem; }
+    #btn-next-match { background: var(--green); }
+    #btn-next-round { background: #1a5a7a; }
+    #btn-next-round:hover { background: #237aa4; }
+    #btn-full-season { background: #6a4a1a; }
+    #btn-full-season:hover { background: #8a6423; }
+    .progress-label { font-size: 0.82rem; color: var(--muted); margin-left: 4px; white-space: nowrap; }
+
+    /* upcoming (unplayed) matches */
+    .match-row.upcoming { opacity: 0.75; }
+    .match-row.upcoming .match-score { color: var(--muted); font-size: 0.75rem; letter-spacing: 1px; }
+    .match-row.upcoming.playable {
+      opacity: 1;
+      cursor: pointer;
+    }
+    .match-row.upcoming.playable .match-score { color: var(--green2); font-weight: 700; }
+    .match-row.upcoming.playable:hover {
+      background: var(--card2);
+      outline: 1px dashed var(--green2);
+      outline-offset: -1px;
+    }
+    .round-card.current-round .round-header { color: var(--green2); border-bottom-color: var(--green); }
+
     .spinner {
       display: none;
       width: 22px; height: 22px;
@@ -243,6 +272,102 @@
     .match-row.home-win .match-home { color: var(--win); }
     .match-row.away-win .match-away { color: var(--win); }
     .match-row.draw .match-score { color: var(--draw); }
+    .match-row.watchable { cursor: pointer; }
+    .match-row.watchable:hover { background: var(--card2); }
+
+    /* ── Watch Match modal ─────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 640px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      background: linear-gradient(135deg, #0d2137 0%, #0f3d20 100%);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-score {
+      font-size: 1.3rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      justify-content: center;
+    }
+    .modal-score .live-min {
+      background: var(--green);
+      color: #fff;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      padding: 2px 8px;
+      min-width: 40px;
+      text-align: center;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-controls {
+      display: flex;
+      gap: 8px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+    .modal-controls .btn { padding: 5px 14px; font-size: 0.8rem; }
+    .commentary {
+      overflow-y: auto;
+      padding: 14px 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 260px;
+    }
+    .comm-line {
+      display: grid;
+      grid-template-columns: 40px 24px 1fr;
+      gap: 8px;
+      align-items: baseline;
+      font-size: 0.85rem;
+      padding: 5px 8px;
+      border-radius: 6px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .comm-min { color: var(--muted); font-weight: 700; font-size: 0.78rem; }
+    .comm-line.ev-GOAL { background: rgba(46,204,113,0.12); border-left: 3px solid var(--win); }
+    .comm-line.ev-RED { background: rgba(231,76,60,0.12); border-left: 3px solid var(--loss); }
+    .comm-line.ev-HALFTIME, .comm-line.ev-FULLTIME {
+      background: var(--card2); font-weight: 700; border-left: 3px solid var(--muted);
+    }
 
     /* ── Stats tab ─────────────────────────────────────────── */
     .stats-grid {
@@ -334,12 +459,15 @@
   <!-- Controls -->
   <div class="controls">
     <label for="league-select">League</label>
-    <select id="league-select">
-      <option value="">Loading leagues…</option>
-    </select>
-    <button class="btn" id="sim-btn" onclick="runSimulation()">▶ Simulate Season</button>
+    <select id="league-select"></select>
+    <button class="btn" id="sim-btn" onclick="startSeason()">🆕 Start New Season</button>
     <div class="spinner" id="spinner"></div>
-    <span id="sim-time" style="font-size:0.8rem;color:var(--muted);margin-left:auto;"></span>
+    <div class="season-controls" id="season-controls" style="display:none;">
+      <button class="btn" id="btn-next-match" onclick="playNextMatch()">▶ Next Match</button>
+      <button class="btn" id="btn-next-round" onclick="playNextRound()">⏩ Next Round</button>
+      <button class="btn" id="btn-full-season" onclick="playFullSeason()">⏭ Finish Season</button>
+      <span class="progress-label" id="progress-label"></span>
+    </div>
   </div>
 
   <div id="error-box" class="error-msg" style="display:none;"></div>
@@ -355,8 +483,8 @@
   <div class="tab-panel active" id="tab-standings">
     <div class="empty-state" id="empty-state">
       <div class="icon">⚽</div>
-      <h2>Ready to simulate</h2>
-      <p>Pick a league and hit <strong>Simulate Season</strong> to run the tournament.</p>
+      <h2>Ready to play</h2>
+      <p>Pick a league and hit <strong>Start New Season</strong> — fixtures will be laid out, then step through match by match, round by round, or finish the season in one go.</p>
     </div>
     <div class="table-wrap" id="standings-table" style="display:none;"></div>
   </div>
@@ -380,8 +508,41 @@
   </div>
 </main>
 
+<!-- Watch Match modal -->
+<div class="modal-overlay" id="watch-overlay" onclick="if(event.target===this)closeWatch()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-score">
+        <span id="watch-home"></span>
+        <span id="watch-score">0 x 0</span>
+        <span id="watch-away"></span>
+        <span class="live-min" id="watch-min">0'</span>
+      </div>
+      <button class="modal-close" onclick="closeWatch()">✕</button>
+    </div>
+    <div class="modal-controls">
+      <button class="btn" id="watch-speed" onclick="cycleSpeed()">Speed: 1×</button>
+      <button class="btn" id="watch-skip" onclick="skipToEnd()">Skip to full-time</button>
+    </div>
+    <div class="commentary" id="watch-feed"></div>
+  </div>
+</div>
+
 <script>
-  let simData = null;
+  let simData = null;        // full precomputed season from the server
+  let flat = [];             // flattened [{rIdx, mIdx}] in play order
+  let playedSet = new Set(); // keys "rIdx:mIdx" of matches already played/revealed
+
+  function key(rIdx, mIdx) { return rIdx + ':' + mIdx; }
+  function isPlayed(rIdx, mIdx) { return playedSet.has(key(rIdx, mIdx)); }
+
+  // Lowest round index that still has unplayed matches (-1 = season over)
+  function currentRoundIdx() {
+    for (let r = 0; r < simData.rounds.length; r++) {
+      if (simData.rounds[r].matches.some((_, m) => !isPlayed(r, m))) return r;
+    }
+    return -1;
+  }
 
   // ── Boot: load leagues ──────────────────────────────────────
   (async () => {
@@ -406,8 +567,8 @@
     document.getElementById('tab-' + name).classList.add('active');
   }
 
-  // ── Run simulation ──────────────────────────────────────────
-  async function runSimulation() {
+  // ── Season lifecycle ────────────────────────────────────────
+  async function startSeason() {
     const league = document.getElementById('league-select').value;
     const btn = document.getElementById('sim-btn');
     const spinner = document.getElementById('spinner');
@@ -416,9 +577,7 @@
     btn.disabled = true;
     spinner.style.display = 'block';
     errBox.style.display = 'none';
-    document.getElementById('sim-time').textContent = '';
 
-    const t0 = Date.now();
     try {
       const res = await fetch('/api/simulate', {
         method: 'POST',
@@ -429,16 +588,19 @@
       if (!res.ok) throw new Error(data.error || 'Unknown error');
 
       simData = data;
-      const elapsed = ((Date.now() - t0) / 1000).toFixed(2);
-      document.getElementById('sim-time').textContent = `Simulated in ${elapsed}s`;
+      flat = [];
+      data.rounds.forEach((r, rIdx) =>
+        r.matches.forEach((m, mIdx) => flat.push({ rIdx, mIdx })));
+      playedSet = new Set();
 
       document.getElementById('tabs').style.display = 'flex';
       document.getElementById('empty-state').style.display = 'none';
       document.getElementById('standings-table').style.display = 'block';
+      document.getElementById('season-controls').style.display = 'flex';
+      document.getElementById('turn-filter').value = '0';
 
-      renderStandings(data.standings);
-      renderRounds();
-      renderStats(data.standings, data.rounds);
+      refreshAll();
+      switchTab('results');   // season starts: fixtures are laid out
     } catch (e) {
       errBox.textContent = '⚠ ' + e.message;
       errBox.style.display = 'block';
@@ -446,6 +608,108 @@
       btn.disabled = false;
       spinner.style.display = 'none';
     }
+  }
+
+  // Play a specific fixture LIVE: opens the match view, commentary builds the
+  // score, and the result is only committed to the table at full-time.
+  function playFixture(rIdx, mIdx) {
+    if (!simData || isPlayed(rIdx, mIdx)) return;
+    if (rIdx !== currentRoundIdx()) return;  // only fixtures in the active round
+    openWatch(rIdx, mIdx, true);
+  }
+
+  // "Next Match" = play the first unplayed fixture of the active round, live
+  function playNextMatch() {
+    if (!simData) return;
+    const r = currentRoundIdx();
+    if (r < 0) return;
+    const mIdx = simData.rounds[r].matches.findIndex((_, m) => !isPlayed(r, m));
+    playFixture(r, mIdx);
+  }
+
+  // Reveal all remaining matches of the active round instantly
+  function playNextRound() {
+    if (!simData) return;
+    const r = currentRoundIdx();
+    if (r < 0) return;
+    simData.rounds[r].matches.forEach((_, m) => playedSet.add(key(r, m)));
+    refreshAll();
+  }
+
+  function playFullSeason() {
+    if (!simData) return;
+    flat.forEach(({ rIdx, mIdx }) => playedSet.add(key(rIdx, mIdx)));
+    refreshAll();
+  }
+
+  // Commit a live-played match result to the season state
+  function commitMatch(rIdx, mIdx) {
+    if (isPlayed(rIdx, mIdx)) return;
+    playedSet.add(key(rIdx, mIdx));
+    refreshAll();
+  }
+
+  function refreshAll() {
+    const standings = computeStandings();
+    renderStandings(standings);
+    renderRounds();
+    renderStats(standings);
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const label = document.getElementById('progress-label');
+    const playedCount = playedSet.size;
+    const done = playedCount >= flat.length;
+    document.getElementById('btn-next-match').disabled = done;
+    document.getElementById('btn-next-round').disabled = done;
+    document.getElementById('btn-full-season').disabled = done;
+    if (done) {
+      label.textContent = `🏁 Season complete — ${flat.length} matches played`;
+    } else {
+      const r = currentRoundIdx();
+      const round = simData.rounds[r];
+      const left = round.matches.filter((_, m) => !isPlayed(r, m)).length;
+      label.textContent = `Round ${r + 1}/${simData.rounds.length} (Turn ${round.turn}) · ${left} match${left > 1 ? 'es' : ''} left · ${playedCount}/${flat.length} played`;
+    }
+  }
+
+  // ── Standings computed from played matches only ─────────────
+  function computeStandings() {
+    const table = {};
+    simData.teams.forEach(t => {
+      table[t.name] = {
+        name: t.name, pts: 0, played: 0, w: 0, d: 0, l: 0,
+        gf: 0, ga: 0, gd: 0,
+        morale: t.morale, rating: t.rating, attack: t.attack, defence: t.defence,
+        initialRating: t.rating, form: []
+      };
+    });
+
+    for (const { rIdx, mIdx } of flat) {
+      if (!isPlayed(rIdx, mIdx)) continue;
+      const m = simData.rounds[rIdx].matches[mIdx];
+      const h = table[m.home], a = table[m.away];
+      if (!h || !a) continue;
+
+      h.played++; a.played++;
+      h.gf += m.homeGoals; h.ga += m.awayGoals;
+      a.gf += m.awayGoals; a.ga += m.homeGoals;
+
+      if (m.winner === m.home)      { h.pts += 3; h.w++; a.l++; h.form.push('W'); a.form.push('L'); }
+      else if (m.winner === m.away) { a.pts += 3; a.w++; h.l++; a.form.push('W'); h.form.push('L'); }
+      else                          { h.pts++; a.pts++; h.d++; a.d++; h.form.push('D'); a.form.push('D'); }
+
+      // live team state from post-match snapshots
+      if (m.homeState) { h.morale = m.homeState.morale; h.rating = m.homeState.rating; h.attack = m.homeState.attack; h.defence = m.homeState.defence; }
+      if (m.awayState) { a.morale = m.awayState.morale; a.rating = m.awayState.rating; a.attack = m.awayState.attack; a.defence = m.awayState.defence; }
+    }
+
+    const list = Object.values(table);
+    list.forEach(t => t.gd = t.gf - t.ga);
+    // standard tie-breakers: pts → GD → GF → wins
+    list.sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || y.w - x.w);
+    return list;
   }
 
   // ── Standings ───────────────────────────────────────────────
@@ -457,8 +721,8 @@
       const gdClass = t.gd > 0 ? 'gd-pos' : t.gd < 0 ? 'gd-neg' : '';
       const gdStr = t.gd > 0 ? '+' + t.gd : t.gd;
 
-      const moraleWidth = Math.round((t.morale / 20) * 100);
-      const ratingWidth = Math.round((t.rating / 20) * 100);
+      const moraleWidth = Math.round((t.morale / 100) * 100);
+      const ratingWidth = Math.round((t.rating / 100) * 100);
 
       const formHtml = t.form.slice(-10).map(f =>
         `<span class="form-pill form-${f}" title="${f === 'W' ? 'Win' : f === 'D' ? 'Draw' : 'Loss'}">${f}</span>`
@@ -487,6 +751,8 @@
             <span class="bar-val">${t.rating}</span>
           </div>
         </td>
+        <td style="color:var(--muted);font-size:0.8rem">${t.attack ?? '-'}</td>
+        <td style="color:var(--muted);font-size:0.8rem">${t.defence ?? '-'}</td>
         <td><div class="form-strip">${formHtml}</div></td>
       </tr>`;
     }).join('');
@@ -501,6 +767,7 @@
             <th>W</th><th>D</th><th>L</th>
             <th>GF</th><th>GA</th><th>GD</th>
             <th>Morale</th><th>Rating</th>
+            <th>Att</th><th>Def</th>
             <th>Last 10</th>
           </tr>
         </thead>
@@ -513,36 +780,63 @@
     if (!simData) return;
     const turnFilter = parseInt(document.getElementById('turn-filter').value);
     const grid = document.getElementById('rounds-grid');
+    const activeRound = playedSet.size < flat.length ? currentRoundIdx() : -1;
 
     const rounds = turnFilter === 0
       ? simData.rounds
       : simData.rounds.filter(r => r.turn === turnFilter);
 
-    grid.innerHTML = rounds.map(r => {
-      const matches = r.matches.map(m => {
+    grid.innerHTML = rounds.map((r) => {
+      const rIdx = simData.rounds.indexOf(r);
+      const matches = r.matches.map((m, mIdx) => {
+        if (!isPlayed(rIdx, mIdx)) {
+          // upcoming fixture — playable if it belongs to the active round
+          const playable = rIdx === activeRound;
+          return `<div class="match-row upcoming${playable ? ' playable' : ''}"
+            ${playable ? `onclick="playFixture(${rIdx},${mIdx})" title="Play this match live"` : ''}>
+            <span class="match-home">${escHtml(m.home)}</span>
+            <span class="match-score">${playable ? '▶ vs' : 'vs'}</span>
+            <span class="match-away">${escHtml(m.away)}</span>
+          </div>`;
+        }
+
         let rowClass = '';
         let scoreStyle = '';
         if (m.winner === m.home) { rowClass = 'home-win'; }
         else if (m.winner === m.away) { rowClass = 'away-win'; }
         else { rowClass = 'draw'; scoreStyle = 'color:var(--draw)'; }
 
-        return `<div class="match-row ${rowClass}">
+        const watchable = m.events && m.events.length > 0;
+        return `<div class="match-row ${rowClass}${watchable ? ' watchable' : ''}"
+          ${watchable ? `onclick="openWatch(${rIdx},${mIdx},false)" title="Rewatch this match"` : ''}>
           <span class="match-home">${escHtml(m.home)}</span>
           <span class="match-score" style="${scoreStyle}">${m.homeGoals} – ${m.awayGoals}</span>
           <span class="match-away">${escHtml(m.away)}</span>
         </div>`;
       }).join('');
 
-      return `<div class="round-card">
-        <div class="round-header">Turn ${r.turn} · Round ${r.round}</div>
+      return `<div class="round-card${rIdx === activeRound ? ' current-round' : ''}" id="round-card-${rIdx}">
+        <div class="round-header">Turn ${r.turn} · Round ${r.round}${rIdx === activeRound ? ' — current' : ''}</div>
         ${matches}
       </div>`;
     }).join('');
+
+    // keep the current round in view
+    if (activeRound >= 0) {
+      const el = document.getElementById('round-card-' + activeRound);
+      if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   }
 
   // ── Stats ───────────────────────────────────────────────────
-  function renderStats(standings, rounds) {
+  function renderStats(standings) {
     const grid = document.getElementById('stats-grid');
+
+    if (playedSet.size === 0) {
+      grid.innerHTML = `<div class="stat-card"><h3>⚽ Season Overview</h3>
+        <div class="stat-item"><span>No matches played yet</span><span class="stat-val">—</span></div></div>`;
+      return;
+    }
 
     // Top scorers (by GF)
     const topGF = [...standings].sort((a,b) => b.gf - a.gf).slice(0, 5);
@@ -555,9 +849,11 @@
       .sort((a,b) => (b.rating - b.initialRating) - (a.rating - a.initialRating))
       .slice(0, 5);
 
-    // Score tallies
+    // Score tallies over PLAYED matches only
     let totalGoals = 0, totalMatches = 0, draws = 0, highScore = 0, highScoreMatch = '';
-    rounds.forEach(r => r.matches.forEach(m => {
+    for (const { rIdx, mIdx } of flat) {
+      if (!isPlayed(rIdx, mIdx)) continue;
+      const m = simData.rounds[rIdx].matches[mIdx];
       const g = m.homeGoals + m.awayGoals;
       totalGoals += g;
       totalMatches++;
@@ -566,7 +862,7 @@
         highScore = g;
         highScoreMatch = `${m.home} ${m.homeGoals}–${m.awayGoals} ${m.away}`;
       }
-    }));
+    }
 
     const avgGoals = totalMatches > 0 ? (totalGoals / totalMatches).toFixed(2) : '-';
     const drawPct = totalMatches > 0 ? ((draws / totalMatches) * 100).toFixed(1) : '-';
@@ -601,7 +897,7 @@
         <h3>🔥 Highest Morale</h3>
         ${topMorale.map((t,i) => `<div class="stat-item">
           <span>${i+1}. ${escHtml(t.name)}</span>
-          <span class="stat-val">${t.morale}/20</span>
+          <span class="stat-val">${t.morale}/100</span>
         </div>`).join('')}
       </div>
 
@@ -627,6 +923,98 @@
       .replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;');
   }
+
+  // ── Watch Match (FM-style replay) ───────────────────────────
+  const EV_ICON = {
+    GOAL: '⚽', SAVE: '🧤', MISS: '💨', POST: '🥅',
+    YELLOW: '🟨', RED: '🟥', KICKOFF: '🏁', HALFTIME: '⏱', FULLTIME: '⏱'
+  };
+  let watch = null;   // { rIdx, mIdx, live, events, idx, timer, speedIdx, hg, ag }
+  const SPEEDS = [1, 2, 4];
+
+  function openWatch(roundIdx, matchIdx, live) {
+    const m = simData.rounds[roundIdx].matches[matchIdx];
+    if (!m.events || !m.events.length) return;
+
+    watch = { rIdx: roundIdx, mIdx: matchIdx, live: !!live,
+              match: m, events: m.events, idx: 0, timer: null, speedIdx: 0, hg: 0, ag: 0 };
+
+    document.getElementById('watch-home').textContent = m.home;
+    document.getElementById('watch-away').textContent = m.away;
+    document.getElementById('watch-score').textContent = '0 x 0';
+    document.getElementById('watch-min').textContent = "0'";
+    document.getElementById('watch-feed').innerHTML = '';
+    document.getElementById('watch-speed').textContent = 'Speed: 1×';
+    document.getElementById('watch-overlay').classList.add('open');
+
+    scheduleNext();
+  }
+
+  function scheduleNext() {
+    if (!watch) return;
+    if (watch.idx >= watch.events.length) {
+      onMatchFinished();
+      return;
+    }
+    const base = 900;
+    const delay = base / SPEEDS[watch.speedIdx];
+    watch.timer = setTimeout(() => { showEvent(); scheduleNext(); }, delay);
+  }
+
+  // Live match reached full-time: commit the result to the season
+  function onMatchFinished() {
+    if (watch && watch.live) {
+      watch.live = false;   // avoid double-commit
+      commitMatch(watch.rIdx, watch.mIdx);
+    }
+  }
+
+  function showEvent() {
+    const ev = watch.events[watch.idx++];
+    if (ev.type === 'GOAL') {
+      if (ev.side === 'Home') watch.hg++; else watch.ag++;
+      document.getElementById('watch-score').textContent = `${watch.hg} x ${watch.ag}`;
+    }
+    document.getElementById('watch-min').textContent = ev.min + "'";
+
+    const feed = document.getElementById('watch-feed');
+    const line = document.createElement('div');
+    line.className = 'comm-line ev-' + ev.type;
+    line.innerHTML = `<span class="comm-min">${ev.min}'</span>` +
+      `<span>${EV_ICON[ev.type] || ''}</span>` +
+      `<span>${escHtml(ev.text)}</span>`;
+    feed.appendChild(line);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function cycleSpeed() {
+    if (!watch) return;
+    watch.speedIdx = (watch.speedIdx + 1) % SPEEDS.length;
+    document.getElementById('watch-speed').textContent = `Speed: ${SPEEDS[watch.speedIdx]}×`;
+  }
+
+  function skipToEnd() {
+    if (!watch) return;
+    clearTimeout(watch.timer);
+    while (watch.idx < watch.events.length) showEvent();
+    onMatchFinished();
+  }
+
+  function closeWatch() {
+    if (!watch) return;
+    clearTimeout(watch.timer);
+    // Closing a live match early = fast-forward and commit the result
+    if (watch.live) {
+      while (watch.idx < watch.events.length) watch.idx++;
+      onMatchFinished();
+    }
+    watch = null;
+    document.getElementById('watch-overlay').classList.remove('open');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeWatch();
+  });
 </script>
 </body>
 </html>

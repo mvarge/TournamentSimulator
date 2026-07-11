@@ -1,16 +1,16 @@
-Porto,13
-Benfica,13
-Setubal,10
-Sportin,10
-Vitoria,7
-Rio Ave,7
-Belenen,6
-Maritim,7
-Varge M,6
-Pacos F,6
-Braga,7
-Gil Vic,5
-Aves,3
-Boavist,5
-Moreire,4
-Portimo,3
+Porto,64,66
+Benfica,65,65
+Setubal,57,43
+Sportin,48,52
+Vitoria,31,39
+Rio Ave,42,28
+Belenen,29,31
+Maritim,42,28
+Varge M,35,25
+Pacos F,28,32
+Braga,30,40
+Gil Vic,20,30
+Aves,20,10
+Boavist,28,22
+Moreire,25,15
+Portimo,20,10

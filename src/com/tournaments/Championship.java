@@ -25,22 +25,24 @@ public class Championship {
      */
     public Championship(String filename, Integer numberOfTurns, boolean homeFactor) throws Exception {
         this.teams = loadTeams(filename);
-        this.turns = new Turn[2];
+        // FIX: was hardcoded to new Turn[2] — any numberOfTurns > 2 would crash
+        this.turns = new Turn[numberOfTurns];
         this.numberOfTurns = numberOfTurns;
         this.homeFactor = homeFactor;
-        turns[0] = new Turn();
-        turns[1] = new Turn();
 
-        for (Turn t : this.turns) {
+        for (int t = 0; t < numberOfTurns; t++) {
+            turns[t] = new Turn();
             for (int i = 0; i < this.teams.size() - 1; i++) {
-                Round r = new Round();
-                t.addRound(r);
+                turns[t].addRound(new Round(i + 1));
             }
         }
     }
 
     /**
-     * Method to iterate over a file and populate the team Array
+     * Method to iterate over a file and populate the team Array.
+     * Supports two formats:
+     *   Name,Rating              (legacy — attack = defence = rating)
+     *   Name,Attack,Defence      (new split ratings)
      */
     private static List<Team> loadTeams(String filename) throws Exception {
         List<Team> teams = new ArrayList<Team>();
@@ -48,8 +50,16 @@ public class Championship {
         BufferedReader br = new BufferedReader(new FileReader(file));
         String st;
         while ((st = br.readLine()) != null) {
-            String[] values = st.split(",", 2);
-            Team team = new Team(values[0], Integer.parseInt(values[1]));
+            if (st.trim().isEmpty()) continue;
+            String[] values = st.split(",");
+            Team team;
+            if (values.length >= 3) {
+                team = new Team(values[0],
+                        Integer.parseInt(values[1].trim()),
+                        Integer.parseInt(values[2].trim()));
+            } else {
+                team = new Team(values[0], Integer.parseInt(values[1].trim()));
+            }
             teams.add(team);
         }
         return teams;
@@ -67,7 +77,7 @@ public class Championship {
                 Round r = this.turns[turn].rounds.get(x);
                 for (int i = 0; i < first.size(); i++) {
                     if (!first.get(i).getName().equals(second.get(i).getName())) {
-                        if (x % 2 == turn) {
+                        if (x % 2 == turn % 2) {
                             Match m = new Match(first.get(i), second.get(i));
                             r.addMatch(m);
                         } else {
@@ -85,7 +95,8 @@ public class Championship {
     }
 
     /**
-     * Play all matches and collect a log of every result for JSON output.
+     * Play all matches and collect a log of every result (including the
+     * minute-by-minute event feed) for JSON output.
      */
     public void playMatches(boolean pauseRounds) {
         int turnNum = 0;
@@ -104,6 +115,11 @@ public class Championship {
                     result.put("homeGoals", m.teams.get("Home").getGoalsMade());
                     result.put("awayGoals", m.teams.get("Away").getGoalsMade());
                     result.put("winner", m.winner != null ? m.winner.trim() : null);
+                    result.put("events", m.getEvents());
+                    // Team state snapshots AFTER this match — lets the frontend
+                    // rebuild standings incrementally as matches are revealed.
+                    result.put("homeState", snapshot(m.teams.get("Home")));
+                    result.put("awayState", snapshot(m.teams.get("Away")));
                     roundResults.add(result);
                 }
                 Map<String, Object> roundEntry = new LinkedHashMap<>();
@@ -115,18 +131,28 @@ public class Championship {
         }
     }
 
+    /** Small snapshot of a team's live variables right after a match. */
+    private static Map<String, Object> snapshot(Team t) {
+        Map<String, Object> s = new LinkedHashMap<>();
+        s.put("morale", t.getMorale());
+        s.put("attack", t.getAttack());
+        s.put("defence", t.getDefence());
+        s.put("rating", t.getRating());
+        return s;
+    }
+
     /**
      * Print league table to stdout (original behaviour).
      */
     public void printResults() {
         Collections.sort(this.teams, Collections.reverseOrder());
-        System.out.printf("Team\tPts\tP\tW\tD\tL\tGF\tGA\tGD\tM\tR\tDf\tFORM\n");
+        System.out.printf("Team\tPts\tP\tW\tD\tL\tGF\tGA\tGD\tM\tAtt\tDef\tR\tFORM\n");
         for (Team t : this.teams) {
-            System.out.printf("%.7s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
+            System.out.printf("%.7s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
                     t.getName(), t.getPoints(), t.getTotalMatches(),
                     t.getWins(), t.getDraws(), t.getLosses(),
                     t.getTotalGoalsMade(), t.getTotalGoalsTaken(), t.getGoalsDifference(),
-                    t.getMorale(), t.getRating(), (t.getRating() - t.getMorale()), t.printForm());
+                    t.getMorale(), t.getAttack(), t.getDefence(), t.getRating(), t.printForm());
         }
     }
 
@@ -139,6 +165,21 @@ public class Championship {
 
         StringBuilder sb = new StringBuilder();
         sb.append("{");
+
+        // initial team states (before any match) — used by the frontend for step-by-step mode
+        sb.append("\"teams\":[");
+        for (int i = 0; i < teams.size(); i++) {
+            Team t = teams.get(i);
+            sb.append("{");
+            sb.append("\"name\":\"").append(escape(t.getName().trim())).append("\",");
+            sb.append("\"attack\":").append(t.getInitialAttack()).append(",");
+            sb.append("\"defence\":").append(t.getInitialDefence()).append(",");
+            sb.append("\"rating\":").append(t.getInitialRating()).append(",");
+            sb.append("\"morale\":").append(t.getInitialRating());
+            sb.append("}");
+            if (i < teams.size() - 1) sb.append(",");
+        }
+        sb.append("],");
 
         // standings
         sb.append("\"standings\":[");
@@ -157,7 +198,11 @@ public class Championship {
             sb.append("\"gd\":").append(t.getGoalsDifference()).append(",");
             sb.append("\"morale\":").append(t.getMorale()).append(",");
             sb.append("\"rating\":").append(t.getRating()).append(",");
+            sb.append("\"attack\":").append(t.getAttack()).append(",");
+            sb.append("\"defence\":").append(t.getDefence()).append(",");
             sb.append("\"initialRating\":").append(t.getInitialRating()).append(",");
+            sb.append("\"initialAttack\":").append(t.getInitialAttack()).append(",");
+            sb.append("\"initialDefence\":").append(t.getInitialDefence()).append(",");
             // form as array of chars
             sb.append("\"form\":[");
             List<Character> form = t.form;
@@ -190,10 +235,33 @@ public class Championship {
                 sb.append("\"awayGoals\":").append(match.get("awayGoals")).append(",");
                 Object winner = match.get("winner");
                 if (winner == null) {
-                    sb.append("\"winner\":null");
+                    sb.append("\"winner\":null,");
                 } else {
-                    sb.append("\"winner\":\"").append(escape((String) winner)).append("\"");
+                    sb.append("\"winner\":\"").append(escape((String) winner)).append("\",");
                 }
+                // minute-by-minute event feed
+                sb.append("\"events\":[");
+                @SuppressWarnings("unchecked")
+                List<MatchEvent> events = (List<MatchEvent>) match.get("events");
+                for (int e = 0; e < events.size(); e++) {
+                    MatchEvent ev = events.get(e);
+                    sb.append("{");
+                    sb.append("\"min\":").append(ev.minute).append(",");
+                    sb.append("\"type\":\"").append(ev.type).append("\",");
+                    if (ev.side == null) {
+                        sb.append("\"side\":null,");
+                    } else {
+                        sb.append("\"side\":\"").append(ev.side).append("\",");
+                    }
+                    sb.append("\"text\":\"").append(escape(ev.text)).append("\"");
+                    sb.append("}");
+                    if (e < events.size() - 1) sb.append(",");
+                }
+                sb.append("],");
+                // post-match team state snapshots
+                appendState(sb, "homeState", match.get("homeState"));
+                sb.append(",");
+                appendState(sb, "awayState", match.get("awayState"));
                 sb.append("}");
                 if (m < matches.size() - 1) sb.append(",");
             }
@@ -209,6 +277,17 @@ public class Championship {
     private static String escape(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void appendState(StringBuilder sb, String key, Object stateObj) {
+        Map<String, Object> state = (Map<String, Object>) stateObj;
+        sb.append("\"").append(key).append("\":{");
+        sb.append("\"morale\":").append(state.get("morale")).append(",");
+        sb.append("\"attack\":").append(state.get("attack")).append(",");
+        sb.append("\"defence\":").append(state.get("defence")).append(",");
+        sb.append("\"rating\":").append(state.get("rating"));
+        sb.append("}");
     }
 
     public void playAll() {

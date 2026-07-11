@@ -1,18 +1,18 @@
-Dortmun,19
-Hertha ,14
-1860 Mu,15
-Bayern ,19
-Hannove,11
-Hoffenh,10
-Frankfu,12
-Wolfsbu,10
-Koln,9
-Stuttga,10
-Hamburg,10
-Freibur,8
-Dusseld,7
-Schalke,7
-Augsbur,7
-Nurnber,7
-Dynamo ,6
-Mainz,7
+Dortmun,100,89
+Hertha ,65,75
+1860 Mu,74,76
+Bayern ,94,96
+Hannove,49,61
+Hoffenh,52,48
+Frankfu,52,68
+Wolfsbu,49,51
+Koln,44,46
+Stuttga,42,58
+Hamburg,44,56
+Freibur,33,47
+Dusseld,34,36
+Schalke,29,41
+Augsbur,28,42
+Nurnber,37,33
+Dynamo ,24,36
+Mainz,43,27

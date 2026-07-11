@@ -1,20 +1,20 @@
-Mallorc,9
-Sportin,9
-Real Mu,9
-Celta V,10
-Malaga,9
-Racing ,8
-Cadiz,7
-Real So,10
-Tenerif,6
-Oviedo,7
-Elche,5
-Albacet,5
-Almeria,4
-Las Pal,5
-Hercule,5
-Gimnast,5
-Girona,3
-Leganes,3
-Alaves,3
-Ponteve,3
+Mallorc,43,47
+Sportin,52,38
+Real Mu,49,41
+Celta V,56,44
+Malaga,41,49
+Racing ,40,40
+Cadiz,31,39
+Real So,49,51
+Tenerif,30,30
+Oviedo,40,30
+Elche,29,21
+Albacet,28,22
+Almeria,19,21
+Las Pal,21,29
+Hercule,33,17
+Gimnast,32,18
+Girona,9,21
+Leganes,8,22
+Alaves,10,20
+Ponteve,11,19
