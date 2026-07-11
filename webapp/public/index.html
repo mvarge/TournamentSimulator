@@ -426,9 +426,23 @@
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: var(--card); border-radius: 8px; width: 100%; max-width: 720px;
+      background: var(--card); border-radius: 8px; width: 100%; max-width: 1080px;
       max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
       box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    }
+    /* Two-column body: pitch + stats on the left, commentary always visible on the right */
+    .modal-body { display: flex; flex: 1; min-height: 0; }
+    .modal-left {
+      flex: 1 1 58%; min-width: 0; display: flex; flex-direction: column;
+      overflow-y: auto; border-right: 1px solid var(--line);
+    }
+    /* When the pitch is hidden the left column collapses and commentary takes over */
+    .modal-left.collapsed { flex: 0 0 auto; }
+    .modal-body .commentary { flex: 1 1 42%; min-width: 0; }
+    @media (max-width: 720px) {
+      .modal-body { flex-direction: column; }
+      .modal-left { flex: none; border-right: none; }
+      .modal-body .commentary { flex: none; }
     }
     .scorebug {
       background: var(--band); color: #fff; padding: 20px;
@@ -639,21 +653,25 @@
       <button class="btn sm ghost" id="watch-skip" onclick="skipToEnd()">Simulate to full-time</button>
       <a class="pitch-toggle" id="pitch-toggle" onclick="togglePitch()">Hide pitch</a>
     </div>
-    <div class="pitch-wrap" id="pitch-wrap">
-      <canvas id="watch-pitch" width="660" height="380"></canvas>
-      <div class="pressure">
-        <span class="pr-name" id="pr-home-name"></span>
-        <div class="pr-bar">
-          <div class="pr-fill-home" id="pr-fill-home"></div>
-          <div class="pr-fill-away" id="pr-fill-away"></div>
-          <div class="pr-mid"></div>
+    <div class="modal-body">
+      <div class="modal-left">
+        <div class="pitch-wrap" id="pitch-wrap">
+          <canvas id="watch-pitch" width="660" height="380"></canvas>
+          <div class="pressure">
+            <span class="pr-name" id="pr-home-name"></span>
+            <div class="pr-bar">
+              <div class="pr-fill-home" id="pr-fill-home"></div>
+              <div class="pr-fill-away" id="pr-fill-away"></div>
+              <div class="pr-mid"></div>
+            </div>
+            <span class="pr-name" id="pr-away-name"></span>
+          </div>
+          <div class="pr-caption">Pressure · last 5 minutes</div>
         </div>
-        <span class="pr-name" id="pr-away-name"></span>
+        <div class="mstats" id="mstats"></div>
       </div>
-      <div class="pr-caption">Pressure · last 5 minutes</div>
+      <div class="commentary" id="watch-feed"></div>
     </div>
-    <div class="mstats" id="mstats"></div>
-    <div class="commentary" id="watch-feed"></div>
   </div>
 </div>
 
@@ -1308,6 +1326,7 @@
   function togglePitch() {
     pitchHidden = !pitchHidden;
     document.getElementById('pitch-wrap').classList.toggle('hidden', pitchHidden);
+    document.querySelector('.modal-left').classList.toggle('collapsed', pitchHidden);
     document.getElementById('pitch-toggle').textContent = pitchHidden ? 'Show pitch' : 'Hide pitch';
   }
 
@@ -1457,12 +1476,25 @@
     ctx.beginPath(); ctx.moveTo(W / 2, my); ctx.lineTo(W / 2, H - my); ctx.stroke();
     ctx.beginPath(); ctx.arc(W / 2, H / 2, fh * 0.16, 0, 6.29); ctx.stroke();
     // penalty boxes + goals
-    const boxW = fw * 0.135, boxH = fh * 0.55, gW = 6, gH = fh * 0.18;
+    const boxW = fw * 0.135, boxH = fh * 0.55, gW = 15, gH = fh * 0.20;
     ctx.strokeRect(mx, H / 2 - boxH / 2, boxW, boxH);
     ctx.strokeRect(W - mx - boxW, H / 2 - boxH / 2, boxW, boxH);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillRect(mx - gW, H / 2 - gH / 2, gW, gH);
-    ctx.fillRect(W - mx, H / 2 - gH / 2, gW, gH);
+    // goal frames + net mesh
+    const drawNet = (x0) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(x0, H / 2 - gH / 2, gW, gH);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x0, H / 2 - gH / 2, gW, gH);
+      ctx.beginPath();
+      for (let gx = x0 + 4; gx < x0 + gW; gx += 4) { ctx.moveTo(gx, H / 2 - gH / 2); ctx.lineTo(gx, H / 2 + gH / 2); }
+      for (let gy = H / 2 - gH / 2 + 4; gy < H / 2 + gH / 2; gy += 4) { ctx.moveTo(x0, gy); ctx.lineTo(x0 + gW, gy); }
+      ctx.stroke();
+    };
+    drawNet(mx - gW);
+    drawNet(W - mx);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
     // players
     const px = v => mx + v * fw, py = v => my + v * fh;
     for (const pl of p.players) {

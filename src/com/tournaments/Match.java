@@ -181,6 +181,13 @@ public class Match {
         if (by > 0.96) by = 0.96;
     }
 
+    /** Ball crosses the goal line INTO the net (past the pitch boundary, no clamp). */
+    private void ballIntoNet(boolean homeAttacks, double y) {
+        bx = homeAttacks ? 1.02 : -0.02;   // beyond x=1 / x=0 → inside the drawn net
+        by = y;
+        trackTick();
+    }
+
     public void playMatch() {
         playMatch(true);
     }
@@ -364,7 +371,7 @@ public class Match {
                     addEvent(displayMin, "GOAL", side,
                             pick(PEN_GOAL_LINES) + "  (" + home.getGoalsMade() + " x " + away.getGoalsMade() + ")",
                             attacker.name.trim());
-                    ballTravel(gx, 0.5, 1);                // buried
+                    ballIntoNet(homeAttacks, 0.5);         // buried in the net
                     poss = 1 - poss;
                     bx = 0.5; by = 0.5; trackTick();       // back to kickoff
                 } else {
@@ -388,7 +395,7 @@ public class Match {
                 addEvent(displayMin, "GOAL", side,
                         pick(GOAL_LINES) + "  (" + home.getGoalsMade() + " x " + away.getGoalsMade() + ")",
                         attacker.name.trim());
-                ballTravel(gx, 0.42 + Math.random() * 0.16, 1);   // in the net
+                ballIntoNet(homeAttacks, 0.42 + Math.random() * 0.16);   // in the net
                 poss = 1 - poss;
                 bx = 0.5; by = 0.5; trackTick();           // back to kickoff
             } else {
